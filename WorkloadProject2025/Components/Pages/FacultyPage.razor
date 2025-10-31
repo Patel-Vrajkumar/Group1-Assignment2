@@ -1,0 +1,216 @@
+﻿@page "/facultypage"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext _context
+
+<PageTitle>Faculty Profile & Workload</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Faculty Profile & Workload Management</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Manage faculty members and track their workload assignments</MudText>
+                </div>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadData">
+                Refresh
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <FacultyForm OnSaved="LoadData"></FacultyForm>
+
+    <MudCard Class="mt-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5">Faculty Members & Workload</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total: @GetFilteredFaculty().Count() faculty members</MudText>
+                    </div>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="searchString" 
+                          Placeholder="Search by name or email..." 
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" 
+                          IconSize="Size.Medium" 
+                          Class="mb-4"
+                          Immediate="true"
+                          DebounceInterval="300">
+            </MudTextField>
+
+            @if (GetFilteredFaculty().Any())
+            {
+                <MudGrid>
+                    @foreach (var faculty in GetFilteredFaculty())
+                    {
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="4" Class="mb-3 faculty-card" Style="height: 100%;">
+                                <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudAvatar Color="Color.Surface" Size="Size.Large" Style="color: #667eea;">
+                                                <MudText Typo="Typo.h5">@faculty.FirstName[0]@faculty.LastName[0]</MudText>
+                                            </MudAvatar>
+                                            <div style="flex: 1;">
+                                                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">@faculty.FirstName @faculty.LastName</MudText>
+                                                <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" /> @faculty.Email
+                                                </MudText>
+                                            </div>
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudText Typo="Typo.body2" Class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Color="Color.Info" Class="mr-2" /> 
+                                            @faculty.PhoneNumber
+                                        </MudText>
+                                        
+                                        @{
+                                            var workloads = facultyWorkloads.Where(w => w.FacultyEmail == faculty.Email).ToList();
+                                            var totalHours = workloads.Sum(w => w.HoursAssigned);
+                                        }
+                                        
+                                        <MudDivider Class="my-2" />
+                                        
+                                        <MudPaper Elevation="0" Class="pa-3" Style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px;">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total Workload</MudText>
+                                                    <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@totalHours hrs</MudText>
+                                                </MudStack>
+                                                <MudStack Spacing="0" Style="text-align: right;">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Assignments</MudText>
+                                                    <MudText Typo="Typo.h5" Color="Color.Secondary" Style="font-weight: 700;">@workloads.Count</MudText>
+                                                </MudStack>
+                                            </MudStack>
+                                        </MudPaper>
+                                        
+                                        @if (workloads.Any())
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mt-2" Style="font-weight: 600;">Recent Assignments:</MudText>
+                                            <MudStack Spacing="1">
+                                                @foreach (var workload in workloads.Take(3))
+                                                {
+                                                    var chipColor = GetWorkloadColor(workload.HoursAssigned);
+                                                    <MudChip T="string" 
+                                                             Size="Size.Small" 
+                                                             Color="chipColor"
+                                                             Icon="@Icons.Material.Filled.Assignment"
+                                                             Style="font-weight: 500;">
+                                                        @workload.Workload.ToString().Replace("_", " ") • @workload.HoursAssigned hrs
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                            @if (workloads.Count > 3)
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1">
+                                                    <MudIcon Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" /> 
+                                                    @(workloads.Count - 3) more assignment(s)
+                                                </MudText>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <MudAlert Severity="Severity.Normal" Dense="true" Class="mt-2">
+                                                No workload assignments yet
+                                            </MudAlert>
+                                        }
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else if (string.IsNullOrWhiteSpace(searchString))
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <MudText Typo="Typo.body1">No faculty members found. Add a faculty member using the form above.</MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-4">
+                    <MudText Typo="Typo.body1">No faculty members match your search criteria.</MudText>
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+<style>
+    .faculty-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .faculty-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private List<Faculty> facultyList = new();
+    private List<FacultyWorkLoad> facultyWorkloads = new();
+    private string searchString = "";
+    private IEnumerable<Faculty> filteredFaculty = Enumerable.Empty<Faculty>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        facultyList = await _context.Faculty.ToListAsync();
+        facultyWorkloads = await _context.FacultyWorkLoads
+            .Include(w => w.Course)
+            .Include(w => w.Term)
+            .ToListAsync();
+        UpdateFilteredFaculty();
+        StateHasChanged();
+    }
+
+    private void UpdateFilteredFaculty()
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+        {
+            filteredFaculty = facultyList;
+        }
+        else
+        {
+            filteredFaculty = facultyList.Where(f => 
+                f.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                f.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                f.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+    }
+
+    private IEnumerable<Faculty> GetFilteredFaculty()
+    {
+        UpdateFilteredFaculty();
+        return filteredFaculty;
+    }
+
+    private Color GetWorkloadColor(decimal hours)
+    {
+        if (hours >= 40) return Color.Error;
+        if (hours >= 25) return Color.Warning;
+        if (hours >= 10) return Color.Info;
+        return Color.Success;
+    }
+}

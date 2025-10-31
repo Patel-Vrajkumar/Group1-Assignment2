@@ -1,0 +1,165 @@
+﻿@page "/facultyworkloadform"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using MudBlazor
+@inject ApplicationDbContext _context
+@inject ISnackbar Snackbar
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 750px;" Elevation="4">
+    <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: -16px -16px 16px -16px; padding: 24px; border-radius: 4px 4px 0 0;">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Size="Size.Large" Style="color: white;" />
+                <div>
+                    <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Add Faculty Workload</MudText>
+                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">Assign workload to a faculty member</MudText>
+                </div>
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12">
+                <MudTextField Label="Faculty Email"
+                              @bind-Value="facultyWorkLoad.FacultyEmail"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Email"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Enter the faculty member's email address" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Workload"
+                           Label="Workload Type"
+                           @bind-Value="facultyWorkLoad.Workload"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Category"
+                           AdornmentColor="Color.Primary"
+                           HelperText="Select the type of workload">
+                    @foreach (Workload type in Enum.GetValues(typeof(Workload)))
+                    {
+                        <MudSelectItem Value="@type">@type.ToString().Replace("_", " ")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal"
+                                 Label="Hours Assigned"
+                                 @bind-Value="facultyWorkLoad.HoursAssigned"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 Min="0"
+                                 Max="168"
+                                 Adornment="Adornment.End"
+                                 AdornmentIcon="@Icons.Material.Filled.Timer"
+                                 AdornmentColor="Color.Primary"
+                                 HelperText="Number of hours for this assignment" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Label="Description"
+                              @bind-Value="facultyWorkLoad.Description"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Description"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Optional: Add details about this workload assignment" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Date Assigned"
+                               @bind-Date="facultyWorkLoad.DateAssigned"
+                               Variant="Variant.Outlined"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                               AdornmentColor="Color.Primary"
+                               HelperText="When this workload was assigned" />
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+
+    <MudCardActions Class="d-flex justify-end pa-4" Style="background-color: #f5f5f5; margin: 16px -16px -16px -16px; border-radius: 0 0 4px 4px;">
+        <MudButton Variant="Variant.Outlined" 
+                   Color="Color.Secondary" 
+                   StartIcon="@Icons.Material.Filled.Close"
+                   Class="mr-2"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!IsFormValid())"
+                   OnClick="Save">
+            Save Workload
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private FacultyWorkLoad facultyWorkLoad = new()
+    {
+        DateAssigned = DateTime.Now
+    };
+
+    private void Cancel()
+    {
+        facultyWorkLoad = new FacultyWorkLoad { DateAssigned = DateTime.Now };
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+        
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
+               IsValidEmail(facultyWorkLoad.FacultyEmail) &&
+               facultyWorkLoad.HoursAssigned > 0;
+    }
+
+    private async Task Save()
+    {
+        if (!IsFormValid())
+        {
+            Snackbar.Add("Please fill in all required fields correctly.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _context.FacultyWorkLoads.Add(facultyWorkLoad);
+            await _context.SaveChangesAsync();
+
+            Snackbar.Add($"Workload assignment of {facultyWorkLoad.HoursAssigned} hours added successfully!", Severity.Success);
+            await OnSaved.InvokeAsync();
+            Cancel();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding workload: {ex.Message}", Severity.Error);
+        }
+    }
+}

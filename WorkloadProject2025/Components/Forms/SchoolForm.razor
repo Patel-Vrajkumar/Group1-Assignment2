@@ -1,0 +1,47 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using WorkloadProject2025.Data.Models
+<!--To inject something into the form you use inject-->
+@inject SchoolService schoolService
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Add New School</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+            <MudTextField Label="School Name"
+                          @bind-Value="school.Name"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.School" />
+        </MudStack>
+    </MudCardContent>
+
+    <MudCardActions Class="justify-end">
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+
+    [Parameter]
+    public EventCallback<School> OnSaved { get; set; }
+
+    private School school { get; set; } = new School();
+
+    private void Cancel()
+    {
+        school = new School(); // reset form
+    }
+
+    private async void Save()
+    {
+        await schoolService.AddAsync(school);
+        //Now invoke the callback
+        await OnSaved.InvokeAsync();
+        school = new School(); // reset form
+        //Cancel();
+        StateHasChanged();
+    }
+}

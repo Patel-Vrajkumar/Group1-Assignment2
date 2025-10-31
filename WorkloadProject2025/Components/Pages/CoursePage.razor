@@ -1,0 +1,52 @@
+﻿@page "/CoursePage"
+@inject CourseService courseService
+@inject ProgramsOfStudyService posservice
+<CoursesForm courseservice="courseService" POS="pos" OnSaved="Save"></CoursesForm>
+
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Current Programs</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+            @foreach (var c in courses)
+            {
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@c.Name</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary">Courses Details</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            }
+        </MudStack>
+    </MudCardContent>
+
+</MudCard>
+@code {
+
+    List<Course> courses = new List<Course>();
+
+    List<ProgramOfStudy> pos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        courses = await courseService.GetAllAsync();
+        pos = await posservice.GetAllAsync();
+    }
+
+    public async Task Save()
+    {
+        //Refresh the list after a save
+        courses = await courseService.GetAllAsync();
+        StateHasChanged();
+    }
+}

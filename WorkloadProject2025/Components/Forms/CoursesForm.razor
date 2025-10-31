@@ -1,0 +1,67 @@
+﻿@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Add New Course</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+            <MudTextField Label="Course Name"
+                          @bind-Value="course.Name"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Business" />
+
+            <MudNumericField T="int"
+                            Label="Course Hours"
+                            @bind-Value="course.Hours"
+                            Required="true"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.AccessTime" />
+
+            <MudSelect T="int"
+                       @bind-value="course.ProgramOfStudyId"
+                       Required="true">
+                @foreach (var p in POS)
+                {
+                    <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+                }
+
+            </MudSelect>
+        </MudStack>
+
+    </MudCardContent>
+
+    <MudCardActions Class="justify-end">
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public EventCallback<Course> OnSaved { get; set; }
+
+    private Course course { get; set; } = new Course();
+    
+    [Parameter]
+    public required List<ProgramOfStudy> POS { get; set; }
+
+    [Parameter]
+    public required CourseService courseservice { get; set; }
+
+    private void Cancel()
+    {
+        course = new Course(); // reset form
+    }
+
+    private async Task Save()
+    {
+        await courseservice.AddAsync(course);
+        await OnSaved.InvokeAsync();
+        course = new Course();
+    }
+}

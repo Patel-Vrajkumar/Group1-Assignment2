@@ -1,0 +1,156 @@
+﻿@page "/"
+
+<PageTitle>Home - Faculty Workload Management System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.School" Class="mr-2" />
+        Faculty Workload Management System
+    </MudText>
+    <MudText Class="mb-8" Typo="Typo.h6">Welcome to Medicine Hat College's comprehensive workload and academic management platform!</MudText>
+
+    <!-- Features Overview -->
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Elevation="3" Class="h-100">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+                            Interactive Dashboards
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">
+                        View comprehensive analytics and visualizations for Schools, Departments, and Programs with interactive charts powered by ApexCharts.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/schooldashboard" Variant="Variant.Text" Color="Color.Primary">School Dashboard</MudButton>
+                    <MudButton Href="/departmentdashboard" Variant="Variant.Text" Color="Color.Primary">Department Dashboard</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Elevation="3" Class="h-100">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+                            Faculty Management
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">
+                        Manage faculty profiles and track workload assignments including courses, coordinator duties, and special projects.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/facultypage" Variant="Variant.Text" Color="Color.Primary">Faculty Profiles</MudButton>
+                    <MudButton Href="/facultyworkloadpage" Variant="Variant.Text" Color="Color.Primary">Workload Tracking</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Elevation="3" Class="h-100">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
+                            Academic Planning
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">
+                        Create and manage entire semesters of courses for programs, organize terms, and maintain curriculum structure.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/semestercoursespage" Variant="Variant.Text" Color="Color.Primary">Create Semester</MudButton>
+                    <MudButton Href="/termpage" Variant="Variant.Text" Color="Color.Primary">Manage Terms</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Quick Links -->
+    <MudCard Class="mb-6">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5">Quick Access</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudButton Href="/schoolpage" 
+                               Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.School">
+                        Schools
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudButton Href="/departmentpage" 
+                               Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.Assessment">
+                        Departments
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudButton Href="/programsofstudy" 
+                               Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.PropaneTank">
+                        Programs
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudButton Href="/coursepage" 
+                               Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.Book">
+                        Courses
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- System Features -->
+    <MudCard>
+        <MudCardHeader>
+            <MudText Typo="Typo.h5">System Features</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudList T="string">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Hierarchical data structure: School → Department → Program → Course
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Flexible faculty workload tracking (Lectures, Labs, Coordinator duties, Special projects)
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Interactive dashboards with real-time data visualization
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Semester-based course planning and management
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Comprehensive reporting and analytics
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Built with .NET 9 Blazor and MudBlazor UI framework
+                </MudListItem>
+            </MudList>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>

@@ -1,0 +1,136 @@
+﻿@page "/facultyworkloadpage"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext _context
+@using MudBlazor
+
+<PageTitle>Faculty Workload Assignment</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Faculty Workload Assignment</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Assign and track workload for faculty members</MudText>
+                </div>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadData">
+                Refresh
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <FacultyWorkLoadForm OnSaved="LoadData"></FacultyWorkLoadForm>
+
+    <MudCard Class="mx-auto mt-6" Elevation="4">
+        <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Current Faculty Workloads</MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">Total: @workloads.Count assignments • @workloads.Sum(w => w.HoursAssigned) total hours</MudText>
+                    </div>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+
+        <MudCardContent>
+            @if (workloads.Any())
+            {
+                <MudGrid Spacing="3">
+                    @foreach (var w in workloads.OrderByDescending(x => x.DateAssigned))
+                    {
+                        var chipColor = GetWorkloadColor(w.HoursAssigned);
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="2" Class="workload-card" Style="height: 100%;">
+                                <MudCardHeader Style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <div>
+                                                <MudText Typo="Typo.h6" Style="font-weight: 600;">@w.FacultyEmail</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="chipColor" Icon="@Icons.Material.Filled.Timer" Style="font-weight: 500;">
+                                                    @w.HoursAssigned hrs
+                                                </MudChip>
+                                            </div>
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #667eea;">
+                                                <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Small" /> @w.Workload.ToString().Replace("_", " ")
+                                            </MudText>
+                                        </MudPaper>
+                                        
+                                        @if (!string.IsNullOrWhiteSpace(w.Description))
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: #666;">
+                                                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /> @w.Description
+                                            </MudText>
+                                        }
+                                        
+                                        <MudDivider />
+                                        
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Info" />
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                Assigned: @(w.DateAssigned?.ToString("MMM dd, yyyy") ?? "N/A")
+                                            </MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <MudText Typo="Typo.body1">No workload assignments found. Add a workload assignment using the form above.</MudText>
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+<style>
+    .workload-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .workload-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private List<FacultyWorkLoad> workloads = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        workloads = await _context.FacultyWorkLoads.ToListAsync();
+        StateHasChanged();
+    }
+
+    private Color GetWorkloadColor(decimal hours)
+    {
+        if (hours >= 40) return Color.Error;
+        if (hours >= 25) return Color.Warning;
+        if (hours >= 10) return Color.Info;
+        return Color.Success;
+    }
+}

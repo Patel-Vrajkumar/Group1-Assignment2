@@ -1,0 +1,310 @@
+@page "/schooldashboard"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@using ApexCharts
+@inject ApplicationDbContext _context
+
+<PageTitle>School Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+        School Dashboard
+    </MudText>
+
+    <!-- School Selector -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int?" 
+                               Label="Select School" 
+                               @bind-Value="selectedSchoolId"
+                               Variant="Variant.Outlined"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@((int?)null)">All Schools</MudSelectItem>
+                        @foreach (var school in schools)
+                        {
+                            <MudSelectItem Value="@((int?)school.Id)">@school.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="MudBlazor.Color.Primary" 
+                               OnClick="RefreshDashboard"
+                               StartIcon="@Icons.Material.Filled.Refresh">
+                        Refresh Data
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Summary Cards -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Schools</MudText>
+                            <MudText Typo="Typo.h4">@totalSchools</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.School" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Departments</MudText>
+                            <MudText Typo="Typo.h4">@totalDepartments</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
+                            <MudText Typo="Typo.h4">@totalPrograms</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
+                            <MudText Typo="Typo.h4">@totalCourses</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Charts Grid -->
+    <MudGrid>
+        <!-- Schools vs Departments Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Schools vs Departments</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Number of Departments per School"
+                               Height="300">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="departmentChartData"
+                                         Name="Departments"
+                                         SeriesType="SeriesType.Pie"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Schools vs Programs Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Schools vs Programs</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Number of Programs per School"
+                               Height="300">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="programChartData"
+                                         Name="Programs"
+                                         SeriesType="SeriesType.Donut"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Schools vs Courses Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Schools vs Courses</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Number of Courses per School"
+                               Height="300">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="courseChartData"
+                                         Name="Courses"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Schools vs Instructors Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Schools vs Instructors</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Number of Instructors per School"
+                               Height="300">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="instructorChartData"
+                                         Name="Instructors"
+                                         SeriesType="SeriesType.Area"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<School> schools = new();
+    private int? selectedSchoolId = null;
+    
+    // Summary statistics
+    private int totalSchools = 0;
+    private int totalDepartments = 0;
+    private int totalPrograms = 0;
+    private int totalCourses = 0;
+
+    // Chart data
+    private List<ChartData> departmentChartData = new();
+    private List<ChartData> programChartData = new();
+    private List<ChartData> courseChartData = new();
+    private List<ChartData> instructorChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        // Load all schools with related data
+        schools = await _context.Schools
+            .Include(s => s.Departments)
+                .ThenInclude(d => d.ProgramsOfStudy)
+                    .ThenInclude(p => p.Courses)
+            .ToListAsync();
+
+        await CalculateStatistics();
+    }
+
+    private async Task CalculateStatistics()
+    {
+        departmentChartData.Clear();
+        programChartData.Clear();
+        courseChartData.Clear();
+        instructorChartData.Clear();
+
+        if (selectedSchoolId.HasValue)
+        {
+            // Filter by selected school
+            var selectedSchool = schools.FirstOrDefault(s => s.Id == selectedSchoolId.Value);
+            if (selectedSchool != null)
+            {
+                totalSchools = 1;
+                totalDepartments = selectedSchool.Departments?.Count ?? 0;
+                totalPrograms = selectedSchool.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0;
+                totalCourses = selectedSchool.Departments?
+                    .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
+                    .SelectMany(p => p.Courses ?? new List<Course>())
+                    .Count() ?? 0;
+
+                // For single school, show department-level breakdown
+                if (selectedSchool.Departments != null)
+                {
+                    foreach (var dept in selectedSchool.Departments)
+                    {
+                        departmentChartData.Add(new ChartData { Label = dept.Name, Value = 1 });
+                        programChartData.Add(new ChartData { Label = dept.Name, Value = dept.ProgramsOfStudy?.Count ?? 0 });
+                        courseChartData.Add(new ChartData { Label = dept.Name, Value = dept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0 });
+                        instructorChartData.Add(new ChartData { Label = dept.Name, Value = (dept.ProgramsOfStudy?.Count ?? 0) * 2 + 1 }); // Mock instructor count
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Show all schools
+            totalSchools = schools.Count;
+            totalDepartments = schools.Sum(s => s.Departments?.Count ?? 0);
+            totalPrograms = schools.Sum(s => s.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0);
+            totalCourses = schools.Sum(s => s.Departments?
+                .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
+                .SelectMany(p => p.Courses ?? new List<Course>())
+                .Count() ?? 0);
+
+            foreach (var school in schools)
+            {
+                var deptCount = school.Departments?.Count ?? 0;
+                var progCount = school.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0;
+                var courseCount = school.Departments?
+                    .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
+                    .SelectMany(p => p.Courses ?? new List<Course>())
+                    .Count() ?? 0;
+
+                departmentChartData.Add(new ChartData { Label = school.Name, Value = deptCount });
+                programChartData.Add(new ChartData { Label = school.Name, Value = progCount });
+                courseChartData.Add(new ChartData { Label = school.Name, Value = courseCount });
+                instructorChartData.Add(new ChartData { Label = school.Name, Value = deptCount * 3 + 2 }); // Mock: ~3 instructors per dept
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task RefreshDashboard()
+    {
+        await CalculateStatistics();
+        StateHasChanged();
+    }
+
+    public class ChartData
+    {
+        public string Label { get; set; } = "";
+        public decimal Value { get; set; }
+        public object X => Label;
+    }
+}

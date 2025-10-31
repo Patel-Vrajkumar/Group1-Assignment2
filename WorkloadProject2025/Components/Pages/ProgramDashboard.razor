@@ -1,0 +1,308 @@
+@page "/programdashboard"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@using ApexCharts
+@inject ApplicationDbContext _context
+
+<PageTitle>Program Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Class="mr-2" />
+        Program Dashboard
+    </MudText>
+
+    <!-- Program Selector -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int?" 
+                               Label="Select Program" 
+                               @bind-Value="selectedProgramId"
+                               Variant="Variant.Outlined"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@((int?)null)">All Programs</MudSelectItem>
+                        @foreach (var program in programs)
+                        {
+                            <MudSelectItem Value="@((int?)program.Id)">@program.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="MudBlazor.Color.Primary" 
+                               OnClick="RefreshDashboard"
+                               StartIcon="@Icons.Material.Filled.Refresh">
+                        Refresh Data
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Summary Cards -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
+                            <MudText Typo="Typo.h4">@totalPrograms</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
+                            <MudText Typo="Typo.h4">@totalCourses</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Hours</MudText>
+                            <MudText Typo="Typo.h4">@totalHours</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Timer" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Avg Hours/Course</MudText>
+                            <MudText Typo="Typo.h4">@avgHoursPerCourse.ToString("F1")</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Charts Grid -->
+    <MudGrid>
+        <!-- Programs Distribution Pie Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Programs by Department</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Distribution of Programs"
+                               Height="350">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="programDistributionData"
+                                         Name="Programs"
+                                         SeriesType="SeriesType.Pie"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Courses per Program Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Courses per Program</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Number of Courses"
+                               Height="350">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="coursesPerProgramData"
+                                         Name="Courses"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Hours Distribution Donut Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Course Hours Distribution</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Total Hours by Program"
+                               Height="350">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="hoursDistributionData"
+                                         Name="Hours"
+                                         SeriesType="SeriesType.Donut"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Programs by Department Bar Chart -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Programs Count by Department</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData"
+                               Title="Programs per Department"
+                               Height="350">
+                        <ApexPointSeries TItem="ChartData"
+                                         Items="programsByDepartmentData"
+                                         Name="Programs"
+                                         SeriesType="SeriesType.Bar"
+                                         XValue="@(e => e.Label)"
+                                         YValue="@(e => e.Value)"
+                                         OrderBy="e => e.X" />
+                    </ApexChart>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<ProgramOfStudy> programs = new();
+    private int? selectedProgramId = null;
+    
+    // Summary statistics
+    private int totalPrograms = 0;
+    private int totalCourses = 0;
+    private int totalHours = 0;
+    private decimal avgHoursPerCourse = 0;
+
+    // Chart data
+    private List<ChartData> programDistributionData = new();
+    private List<ChartData> coursesPerProgramData = new();
+    private List<ChartData> hoursDistributionData = new();
+    private List<ChartData> programsByDepartmentData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        // Load all programs with related data
+        programs = await _context.ProgramsOfStudy
+            .Include(p => p.Department)
+            .Include(p => p.Courses)
+            .ToListAsync();
+
+        await CalculateStatistics();
+    }
+
+    private async Task CalculateStatistics()
+    {
+        programDistributionData.Clear();
+        coursesPerProgramData.Clear();
+        hoursDistributionData.Clear();
+        programsByDepartmentData.Clear();
+
+        if (selectedProgramId.HasValue)
+        {
+            // Filter by selected program
+            var selectedProgram = programs.FirstOrDefault(p => p.Id == selectedProgramId.Value);
+            if (selectedProgram != null)
+            {
+                totalPrograms = 1;
+                totalCourses = selectedProgram.Courses?.Count ?? 0;
+                totalHours = selectedProgram.Courses?.Sum(c => c.Hours) ?? 0;
+                avgHoursPerCourse = totalCourses > 0 ? (decimal)totalHours / totalCourses : 0;
+
+                // For single program, show course-level breakdown
+                if (selectedProgram.Courses != null)
+                {
+                    foreach (var course in selectedProgram.Courses)
+                    {
+                        coursesPerProgramData.Add(new ChartData { Label = course.Name, Value = 1 });
+                        hoursDistributionData.Add(new ChartData { Label = course.Name, Value = course.Hours });
+                    }
+                }
+
+                programDistributionData.Add(new ChartData { Label = selectedProgram.Name, Value = 1 });
+                programsByDepartmentData.Add(new ChartData { Label = selectedProgram.Department?.Name ?? "Unknown", Value = 1 });
+            }
+        }
+        else
+        {
+            // Show all programs
+            totalPrograms = programs.Count;
+            totalCourses = programs.Sum(p => p.Courses?.Count ?? 0);
+            totalHours = programs.Sum(p => p.Courses?.Sum(c => c.Hours) ?? 0);
+            avgHoursPerCourse = totalCourses > 0 ? (decimal)totalHours / totalCourses : 0;
+
+            // Group by department for distribution
+            var departmentGroups = programs.GroupBy(p => p.Department?.Name ?? "Unknown");
+            foreach (var group in departmentGroups)
+            {
+                var count = group.Count();
+                programDistributionData.Add(new ChartData { Label = group.Key, Value = count });
+                programsByDepartmentData.Add(new ChartData { Label = group.Key, Value = count });
+            }
+
+            // Courses per program
+            foreach (var program in programs.Take(10)) // Limit to top 10 for readability
+            {
+                var courseCount = program.Courses?.Count ?? 0;
+                var hours = program.Courses?.Sum(c => c.Hours) ?? 0;
+                
+                coursesPerProgramData.Add(new ChartData { Label = program.Name, Value = courseCount });
+                hoursDistributionData.Add(new ChartData { Label = program.Name, Value = hours });
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task RefreshDashboard()
+    {
+        await CalculateStatistics();
+        StateHasChanged();
+    }
+
+    public class ChartData
+    {
+        public string Label { get; set; } = "";
+        public decimal Value { get; set; }
+        public object X => Label;
+    }
+}

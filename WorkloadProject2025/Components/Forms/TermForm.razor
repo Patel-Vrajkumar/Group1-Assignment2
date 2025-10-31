@@ -1,0 +1,62 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using WorkloadProject2025.Data.Models
+
+@inject TermService intakeService
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Add New Intake</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+   
+
+            <MudTextField Label="Term Name"
+                          @bind-Value="term.IntakeName"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.School" />
+
+            <MudDatePicker Label="Start Date"
+                           @bind-Date="term.StartDate"
+                           DateFormat="MM/dd/yyyy"
+                           PickerVariant="PickerVariant.Dialog"
+                           Variant="Variant.Filled"
+                           Adornment="Adornment.End"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarToday" />
+
+            <MudDatePicker Label="End Date"
+                           @bind-Date="term.EndDate"
+                           DateFormat="MM/dd/yyyy"
+                           PickerVariant="PickerVariant.Dialog"
+                           Variant="Variant.Filled"
+                           Adornment="Adornment.End"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarToday" />
+        </MudStack>
+    </MudCardContent>
+
+    <MudCardActions Class="justify-end">
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public EventCallback<Term> OnSaved { get; set; }
+
+    private Term term { get; set; } = new Term();
+    
+    private void Cancel()
+    {
+        term = new Term(); // reset form
+    }
+    
+    private async Task Save()
+    {
+        await intakeService.AddAsync(term);
+        await OnSaved.InvokeAsync();
+        term = new Term(); // reset form after saving
+        StateHasChanged();
+    }
+}

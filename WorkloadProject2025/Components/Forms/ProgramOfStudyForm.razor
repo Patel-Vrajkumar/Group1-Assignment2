@@ -1,0 +1,64 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using WorkloadProject2025.Data.Models
+
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Program of Study</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+
+            <MudTextField Label="Program Name"
+                          @bind-Value="POS.Name"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Business" />
+
+            <MudSelect T="int"
+                       @bind-value="POS.DepartmentId"
+                       Required="true">
+                @foreach (var dept in department)
+                {
+                    <MudSelectItem Value="@dept.Id">@dept.Name</MudSelectItem>
+                }
+
+            </MudSelect>
+
+
+        </MudStack>
+    </MudCardContent>
+
+    <MudCardActions Class="justify-end">
+        <MudButton Variant="Variant.Text" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+
+    [Parameter]
+    public EventCallback<ProgramOfStudy> OnSaved { get; set; }
+
+    public ProgramOfStudy POS { get; set; } = new ProgramOfStudy();
+
+    [Parameter]
+    public required List<Department> department { get; set; }
+
+    [Parameter]
+    public required ProgramsOfStudyService programService { get; set; }
+
+    private void Cancel()
+    {
+        POS = new ProgramOfStudy(); // reset form
+    }
+
+    private async void Save()
+    {
+        await programService.AddAsync(POS);
+        //Now invoke the callback
+        await OnSaved.InvokeAsync();        
+        POS = new ProgramOfStudy();
+    }
+}

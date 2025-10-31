@@ -1,0 +1,55 @@
+@inject SchoolService _schoolService;
+@page "/schoolpage"
+
+<SchoolForm OnSaved="Save"></SchoolForm>
+
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Current Schools</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+            @foreach (var school in schools)
+            {
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@school.Name</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary">View Departments</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            }
+        </MudStack>
+    </MudCardContent>
+
+</MudCard>
+
+@code {
+    //Make a list of Schools that we can load
+    List<School> schools = new List<School>();
+    //Fires when the page first loads
+    protected override async Task OnInitializedAsync()
+    {
+        //Call our service, to fill our list
+        schools = await _schoolService.GetAllAsync();
+        //Let the GUI know state changed
+        StateHasChanged();
+    }
+
+    public async Task Save()
+    {
+        //Refresh our list of schools
+        schools = await _schoolService.GetAllAsync();
+        StateHasChanged();
+    }
+
+
+}

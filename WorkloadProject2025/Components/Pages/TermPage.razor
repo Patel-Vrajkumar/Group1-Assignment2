@@ -1,0 +1,50 @@
+﻿@inject TermService _termService;
+@page "/termpage"
+
+<TermForm OnSaved="Save"></TermForm>
+
+
+<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6" Class="font-semibold">Current Terms</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudStack Spacing="2">
+            @foreach (var term in terms)
+            {
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@term.IntakeName</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2">Start: @term.StartDate?.ToString("MM/dd/yyyy")</MudText>
+                        <MudText Typo="Typo.body2">End: @term.EndDate?.ToString("MM/dd/yyyy")</MudText>
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudStack>
+    </MudCardContent>
+
+</MudCard>
+
+@code {
+    List<Term> terms = new List<Term>();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        terms = await _termService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    public async Task Save()
+    {
+        terms = await _termService.GetAllAsync();
+        StateHasChanged();
+    }
+}
