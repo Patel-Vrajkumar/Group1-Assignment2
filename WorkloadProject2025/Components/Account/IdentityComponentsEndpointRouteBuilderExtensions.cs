@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.Routing
 
             accountGroup.MapPost("/PerformExternalLogin", (
                 HttpContext context,
-                [FromServices] SignInManager<ApplicationUser> signInManager,
+                [FromServices] SignInManager<ApplicationUser> signInManager, 
                 [FromForm] string provider,
                 [FromForm] string returnUrl) =>
             {
