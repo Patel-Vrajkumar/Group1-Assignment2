@@ -144,18 +144,31 @@
  AdornmentIcon="@Icons.Material.Filled.Badge"
  AdornmentColor="Color.Primary"
  HelperText="Select the type of workload">
- @foreach (Workload type in Enum.GetValues(typeof(Workload)))
+ <MudList T="Workload">
+ <MudListSubheader Dense="true">Teaching</MudListSubheader>
+ @foreach (var t in new[]{Workload.Course_Lecture, Workload.Course_Lab})
  {
- <MudSelectItem Value="@type">@type.ToString().Replace("_", " ")</MudSelectItem>
+ <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
  }
+ <MudListSubheader Dense="true">Release / Non-Teaching</MudListSubheader>
+ @foreach (var t in new[]{Workload.Coordinator_Release, Workload.Research_Release, Workload.Chair_Release, Workload.Sabbatical, Workload.Professional_Development})
+ {
+ <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
+ }
+ <MudListSubheader Dense="true">Administrative / Other</MudListSubheader>
+ @foreach (var t in new[]{Workload.Admin_Duties, Workload.Committee_Work, Workload.Sick_Leave, Workload.Special_Assignment, Workload.Other})
+ {
+ <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
+ }
+ </MudList>
  </MudSelect>
  </MudItem>
 
  <MudItem xs="12" sm="6">
  <MudNumericField T="decimal"
  Label="Hours Assigned"
- @bind-Value="facultyWorkLoad.HoursAssigned"
- @bind-Value:after="OnHoursChanged"
+ Value="@facultyWorkLoad.HoursAssigned"
+ ValueChanged="OnHoursValueChanged"
  Variant="Variant.Outlined"
  Required="true"
  Min="@(hoursMin ??0)"
@@ -207,7 +220,7 @@
  <MudButton Color="Color.Primary" 
  Variant="Variant.Filled" 
  StartIcon="@Icons.Material.Filled.Save"
- Disabled="@isLoading || !IsFormValid()"
+ Disabled="@IsSaveDisabled"
  OnClick="Save">
  Save Workload
  </MudButton>
@@ -269,6 +282,7 @@
  private decimal? hoursMax;
  private string? hoursValidationMessage;
  private Severity hoursValidationSeverity = Severity.Info;
+ private bool IsSaveDisabled => isLoading || !IsFormValid();
 
  protected override async Task OnInitializedAsync()
  {
@@ -355,7 +369,7 @@
  ValidateHours();
  }
 
- private void OnHoursChanged(decimal value)
+ private void OnHoursValueChanged(decimal value)
  {
  facultyWorkLoad.HoursAssigned = value;
  ValidateHours();

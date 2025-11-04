@@ -4,6 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
 @inject ApplicationDbContext _context
+@inject IWorkloadCalculationService Calc
 
 <PageTitle>School Dashboard</PageTitle>
 
@@ -13,34 +14,69 @@
         School Dashboard
     </MudText>
 
-    <!-- School Selector -->
+    <!-- Filters -->
     <MudCard Class="mb-4">
         <MudCardContent>
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudSelect T="int?" 
-                               Label="Select School" 
-                               @bind-Value="selectedSchoolId"
-                               Variant="Variant.Outlined"
-                               AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@((int?)null)">All Schools</MudSelectItem>
-                        @foreach (var school in schools)
+                               Label="Filter by Term" 
+                               @bind-Value="selectedTermId"
+                               Clearable="true"
+                               Dense="true"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
+                        @foreach (var t in terms)
                         {
-                            <MudSelectItem Value="@((int?)school.Id)">@school.Name</MudSelectItem>
+                            <MudSelectItem Value="@t.Id">@t.IntakeName (@t.StartDate?.ToString("MMM yyyy") - @t.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" md="6" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="MudBlazor.Color.Primary" 
-                               OnClick="RefreshDashboard"
-                               StartIcon="@Icons.Material.Filled.Refresh">
-                        Refresh Data
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Refresh" StartIcon="@Icons.Material.Filled.Refresh">
+                        Refresh
                     </MudButton>
                 </MudItem>
             </MudGrid>
         </MudCardContent>
     </MudCard>
+
+    <!-- Per-school workload summary cards -->
+    <MudGrid Class="mb-4">
+        @foreach (var s in schools)
+        {
+            var list = GetWorkloadsForSchool(s.Id);
+            var total = list.Sum(w => w.HoursAssigned);
+            var count = list.Count();
+            var violations = list.Count(Calc.IsAssignmentOutOfRange);
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.h6">@s.Name</MudText>
+                                <MudChip T="string" Color="@(violations>0? Color.Error: Color.Success)" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Warning">
+                                    @(violations>0? $"{violations} violation(s)": "OK")
+                                </MudChip>
+                            </MudStack>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudStack>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Hours</MudText>
+                                <MudText Typo="Typo.h5">@total</MudText>
+                            </MudStack>
+                            <MudStack>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Assignments</MudText>
+                                <MudText Typo="Typo.h5">@count</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
 
     <!-- Summary Cards -->
     <MudGrid Class="mb-4">
@@ -172,7 +208,7 @@
             </MudCard>
         </MudItem>
 
-        <!-- Schools vs Instructors Chart -->
+        <!-- Schools vs Instructors Chart (placeholder) -->
         <MudItem xs="12" md="6">
             <MudCard>
                 <MudCardHeader>
@@ -200,13 +236,15 @@
 
 @code {
     private List<School> schools = new();
-    private int? selectedSchoolId = null;
-    
+    private List<Term> terms = new();
+    private List<FacultyWorkLoad> allWorkloads = new();
+    private int? selectedTermId = null;
+
     // Summary statistics
-    private int totalSchools = 0;
-    private int totalDepartments = 0;
-    private int totalPrograms = 0;
-    private int totalCourses = 0;
+    private int totalSchools =0;
+    private int totalDepartments =0;
+    private int totalPrograms =0;
+    private int totalCourses =0;
 
     // Chart data
     private List<ChartData> departmentChartData = new();
@@ -221,11 +259,18 @@
 
     private async Task LoadData()
     {
-        // Load all schools with related data
+        // Load schools and related data
         schools = await _context.Schools
             .Include(s => s.Departments)
-                .ThenInclude(d => d.ProgramsOfStudy)
-                    .ThenInclude(p => p.Courses)
+            .ThenInclude(d => d.ProgramsOfStudy)
+            .ThenInclude(p => p.Courses)
+            .ToListAsync();
+
+        terms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+
+        allWorkloads = await _context.FacultyWorkLoads
+            .Include(w => w.Course)!.ThenInclude(c => c!.ProgramOfStudy)!.ThenInclude(p => p!.Department)!.ThenInclude(d => d!.School)
+            .Include(w => w.WorkloadCategory)
             .ToListAsync();
 
         await CalculateStatistics();
@@ -238,64 +283,45 @@
         courseChartData.Clear();
         instructorChartData.Clear();
 
-        if (selectedSchoolId.HasValue)
-        {
-            // Filter by selected school
-            var selectedSchool = schools.FirstOrDefault(s => s.Id == selectedSchoolId.Value);
-            if (selectedSchool != null)
-            {
-                totalSchools = 1;
-                totalDepartments = selectedSchool.Departments?.Count ?? 0;
-                totalPrograms = selectedSchool.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0;
-                totalCourses = selectedSchool.Departments?
-                    .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
-                    .SelectMany(p => p.Courses ?? new List<Course>())
-                    .Count() ?? 0;
+        // Summary
+        totalSchools = schools.Count;
+        totalDepartments = schools.Sum(s => s.Departments?.Count ??0);
+        totalPrograms = schools.Sum(s => s.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ??0);
+        totalCourses = schools.Sum(s => s.Departments?
+            .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
+            .SelectMany(p => p.Courses ?? new List<Course>())
+            .Count() ??0);
 
-                // For single school, show department-level breakdown
-                if (selectedSchool.Departments != null)
-                {
-                    foreach (var dept in selectedSchool.Departments)
-                    {
-                        departmentChartData.Add(new ChartData { Label = dept.Name, Value = 1 });
-                        programChartData.Add(new ChartData { Label = dept.Name, Value = dept.ProgramsOfStudy?.Count ?? 0 });
-                        courseChartData.Add(new ChartData { Label = dept.Name, Value = dept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0 });
-                        instructorChartData.Add(new ChartData { Label = dept.Name, Value = (dept.ProgramsOfStudy?.Count ?? 0) * 2 + 1 }); // Mock instructor count
-                    }
-                }
-            }
-        }
-        else
+        foreach (var school in schools)
         {
-            // Show all schools
-            totalSchools = schools.Count;
-            totalDepartments = schools.Sum(s => s.Departments?.Count ?? 0);
-            totalPrograms = schools.Sum(s => s.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0);
-            totalCourses = schools.Sum(s => s.Departments?
+            var deptCount = school.Departments?.Count ??0;
+            var progCount = school.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ??0;
+            var courseCount = school.Departments?
                 .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
                 .SelectMany(p => p.Courses ?? new List<Course>())
-                .Count() ?? 0);
+                .Count() ??0;
 
-            foreach (var school in schools)
-            {
-                var deptCount = school.Departments?.Count ?? 0;
-                var progCount = school.Departments?.SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>()).Count() ?? 0;
-                var courseCount = school.Departments?
-                    .SelectMany(d => d.ProgramsOfStudy ?? new List<ProgramOfStudy>())
-                    .SelectMany(p => p.Courses ?? new List<Course>())
-                    .Count() ?? 0;
-
-                departmentChartData.Add(new ChartData { Label = school.Name, Value = deptCount });
-                programChartData.Add(new ChartData { Label = school.Name, Value = progCount });
-                courseChartData.Add(new ChartData { Label = school.Name, Value = courseCount });
-                instructorChartData.Add(new ChartData { Label = school.Name, Value = deptCount * 3 + 2 }); // Mock: ~3 instructors per dept
-            }
+            departmentChartData.Add(new ChartData { Label = school.Name, Value = deptCount });
+            programChartData.Add(new ChartData { Label = school.Name, Value = progCount });
+            courseChartData.Add(new ChartData { Label = school.Name, Value = courseCount });
+            instructorChartData.Add(new ChartData { Label = school.Name, Value = deptCount *3 +2 }); // Placeholder
         }
 
         await Task.CompletedTask;
     }
 
-    private async Task RefreshDashboard()
+    private IEnumerable<FacultyWorkLoad> GetWorkloadsForSchool(int schoolId)
+    {
+        return allWorkloads.Where(w =>
+            (!selectedTermId.HasValue || w.TermId == selectedTermId.Value) &&
+            w.Course != null &&
+            w.Course.ProgramOfStudy != null &&
+            w.Course.ProgramOfStudy.Department != null &&
+            w.Course.ProgramOfStudy.Department.SchoolId == schoolId
+        );
+    }
+
+    private async Task Refresh()
     {
         await CalculateStatistics();
         StateHasChanged();

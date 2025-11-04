@@ -1,0 +1,100 @@
+@page "/copyworkload"
+@using WorkloadProject2025.Data.Models
+@inject TermService TermService
+@inject IWorkloadCopyService CopyService
+@inject ISnackbar Snackbar
+
+<PageTitle>Copy Workload</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+ <MudCard>
+ <MudCardHeader>
+ <CardHeaderContent>
+ <MudText Typo="Typo.h5">Copy Workload: Term to Term</MudText>
+ </CardHeaderContent>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudStack Spacing="2">
+ <MudSelect T="int?" Label="Source Term" @bind-Value="sourceTermId" Required="true">
+ @foreach (var t in terms)
+ {
+ <MudSelectItem Value="@t.Id">@TermLabel(t)</MudSelectItem>
+ }
+ </MudSelect>
+
+ <MudSelect T="int?" Label="Target Term" @bind-Value="targetTermId" Required="true">
+ @foreach (var t in terms)
+ {
+ <MudSelectItem Value="@t.Id">@TermLabel(t)</MudSelectItem>
+ }
+ </MudSelect>
+
+ <MudAlert Severity="Severity.Info" Dense="true">
+ This will copy all workload assignments from the source term to the target term. Duplicates (same faculty+course+term) are skipped.
+ </MudAlert>
+ </MudStack>
+ </MudCardContent>
+ <MudCardActions Class="justify-end">
+ <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Reset">Reset</MudButton>
+ <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanCopy)" OnClick="DoCopy" StartIcon="@Icons.Material.Filled.ContentCopy">Copy</MudButton>
+ </MudCardActions>
+ </MudCard>
+
+ @if (lastResult != null)
+ {
+ <MudCard Class="mt-4">
+ <MudCardHeader><CardHeaderContent><MudText Typo="Typo.h6">Copy Summary</MudText></CardHeaderContent></MudCardHeader>
+ <MudCardContent>
+ <MudList T="string">
+ <MudListItem T="string">Total found in source: @lastResult.TotalFound</MudListItem>
+ <MudListItem T="string">Copied: @lastResult.Copied</MudListItem>
+ <MudListItem T="string">Skipped duplicates: @lastResult.SkippedDuplicates</MudListItem>
+ @if (lastResult.Errors.Any())
+ {
+ <MudListItem T="string">Errors:</MudListItem>
+ @foreach (var e in lastResult.Errors)
+ {
+ <MudListItem T="string" Class="ml-4">- @e</MudListItem>
+ }
+ }
+ </MudList>
+ </MudCardContent>
+ </MudCard>
+ }
+</MudContainer>
+
+@code {
+ private List<Term> terms = new();
+ private int? sourceTermId;
+ private int? targetTermId;
+ private WorkloadCopyResult? lastResult;
+
+ protected override async Task OnInitializedAsync()
+ {
+ terms = await TermService.GetAllAsync();
+ }
+
+ private string TermLabel(Term t) => $"{t.IntakeName} ({t.StartDate?.ToString("MMM yyyy")} - {t.EndDate?.ToString("MMM yyyy")})";
+
+ private bool CanCopy => sourceTermId.HasValue && targetTermId.HasValue && sourceTermId.Value != targetTermId.Value;
+
+ private void Reset()
+ {
+ sourceTermId = targetTermId = null;
+ lastResult = null;
+ }
+
+ private async Task DoCopy()
+ {
+ if (!CanCopy)
+ {
+ Snackbar.Add("Please select different source and target terms.", Severity.Warning);
+ return;
+ }
+ lastResult = await CopyService.CopyWorkloadAsync(sourceTermId!.Value, targetTermId!.Value);
+ if (lastResult.Errors.Any())
+ Snackbar.Add(string.Join("; ", lastResult.Errors), Severity.Error);
+ else
+ Snackbar.Add($"Copied {lastResult.Copied}, skipped {lastResult.SkippedDuplicates}.", Severity.Success);
+ }
+}

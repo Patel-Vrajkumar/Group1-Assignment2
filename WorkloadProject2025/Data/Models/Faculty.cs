@@ -9,5 +9,7 @@ namespace WorkloadProject2025.Data.Models
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
+        public EmploymentType EmploymentCategory { get; set; } = EmploymentType.FullTime;
+        public string? Notes { get; set; }
     }
 }

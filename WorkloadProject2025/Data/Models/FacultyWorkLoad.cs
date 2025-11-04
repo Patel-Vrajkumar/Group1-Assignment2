@@ -28,9 +28,23 @@
 
     public enum Workload
     {
-        Course_Lecture,
-        Course_Lab,
-        Coordinator,
-        Project
+        // Teaching
+        Course_Lecture =0,
+        Course_Lab =1,
+        // Legacy existing entries kept for compatibility
+        Coordinator =2,
+        Project =3,
+
+        // Non-teaching / release / admin (new)
+        Coordinator_Release =4,
+        Research_Release =5,
+        Chair_Release =6,
+        Admin_Duties =7,
+        Committee_Work =8,
+        Professional_Development =9,
+        Sabbatical =10,
+        Sick_Leave =11,
+        Special_Assignment =12,
+        Other =13
     }
 }

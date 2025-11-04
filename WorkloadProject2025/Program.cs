@@ -29,6 +29,10 @@ builder.Services.AddScoped<ProgramsOfStudyService>();
 builder.Services.AddScoped<TermService>();
 builder.Services.AddScoped<DepartmentService>();
 builder.Services.AddScoped<FacultyWorkLoadService>();
+// New: Copy workload service
+builder.Services.AddScoped<IWorkloadCopyService, WorkloadCopyService>();
+// New: Workload calculation service
+builder.Services.AddScoped<IWorkloadCalculationService, WorkloadCalculationService>();
 
 
 
