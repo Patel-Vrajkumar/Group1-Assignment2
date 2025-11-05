@@ -14,7 +14,7 @@
     
     @if (facultyList != null)
     {
-        <MudDataGrid Items="@facultyList" Filterable="true" Quick Filter="@_quickFilter">
+        <MudDataGrid Items="@facultyList" Filterable="true" QuickFilter="@_quickFilter">
             <Columns>
                 <PropertyColumn Property="x => x.Email" Title="Email" />
                 <PropertyColumn Property="x => x.FirstName" Title="First Name" />
