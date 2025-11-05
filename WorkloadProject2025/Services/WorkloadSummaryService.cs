@@ -19,7 +19,8 @@ namespace WorkloadProject2025.Services
  FacultyEmail = facultyEmail,
  TotalHours = items.Sum(EffectiveHours),
  ProgramSubtotals = items
- .GroupBy(i => i.ProgramOfStudyId)
+ .Where(i => i.ProgramOfStudyId.HasValue)
+ .GroupBy(i => i.ProgramOfStudyId!.Value)
  .ToDictionary(g => g.Key, g => g.Sum(EffectiveHours))
  };
  }
@@ -33,7 +34,8 @@ namespace WorkloadProject2025.Services
  {
  GrandTotalHours = items.Sum(EffectiveHours),
  ProgramTotals = items
- .GroupBy(i => i.ProgramOfStudyId)
+ .Where(i => i.ProgramOfStudyId.HasValue)
+ .GroupBy(i => i.ProgramOfStudyId!.Value)
  .ToDictionary(g => g.Key, g => g.Sum(EffectiveHours))
  };
  }
@@ -49,12 +51,12 @@ namespace WorkloadProject2025.Services
  {
  public string FacultyEmail { get; set; } = string.Empty;
  public decimal TotalHours { get; set; }
- public Dictionary<int?, decimal> ProgramSubtotals { get; set; } = new();
+ public Dictionary<int, decimal> ProgramSubtotals { get; set; } = new();
  }
 
  public class GlobalSummary
  {
  public decimal GrandTotalHours { get; set; }
- public Dictionary<int?, decimal> ProgramTotals { get; set; } = new();
+ public Dictionary<int, decimal> ProgramTotals { get; set; } = new();
  }
 }
