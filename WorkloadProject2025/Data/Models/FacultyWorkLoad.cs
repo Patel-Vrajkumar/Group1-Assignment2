@@ -26,6 +26,10 @@
         public string? Annotations { get; set; } // Notes specific to this workload item
         public WorkloadStatus Status { get; set; } = WorkloadStatus.Draft;
         
+        // Coverage tracking
+        public bool IsCoverage { get; set; } = false; // instructor is covering another class
+        public string? CoveringForFacultyEmail { get; set; } // who they are covering for
+        
         // Audit fields
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public string? CreatedBy { get; set; }
@@ -45,8 +49,23 @@
 
     public enum Workload
     {
+        // Teaching
         Course_Lecture,
         Course_Lab,
+        
+        // Non-Teaching / Release / Admin
+        Coordinator_Release,
+        Research_Release,
+        Sick_Leave,
+        Chair_Release,
+        Admin_Duties,
+        Committee_Work,
+        Special_Assignment,
+        Professional_Development,
+        Sabbatical,
+        Other,
+        
+        // Legacy
         Coordinator,
         Project
     }

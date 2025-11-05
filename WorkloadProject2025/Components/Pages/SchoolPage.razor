@@ -1,55 +1,75 @@
 @inject SchoolService _schoolService;
 @page "/schoolpage"
 
-<SchoolForm OnSaved="Save"></SchoolForm>
-
-
-<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
-    <MudCardHeader>
-        <MudText Typo="Typo.h6" Class="font-semibold">Current Schools</MudText>
-    </MudCardHeader>
-
-    <MudCardContent>
-        <MudStack Spacing="2">
-            @foreach (var school in schools)
-            {
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">@school.Name</MudText>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary">View Departments</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            }
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudStack Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.h5">
+                <MudIcon Icon="@Icons.Material.Filled.School" Class="mr-2" /> Schools
+            </MudText>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
+                OnClick="OpenAddDialog">Add New School</MudButton>
         </MudStack>
-    </MudCardContent>
 
-</MudCard>
+        <MudTable Items="schools" Dense="true" Hover="true" Elevation="1">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh Class="text-right">Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd Class="text-right">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.Domain"
+                        OnClick="() => NavigateToDepartments(context.Id)">Departments</MudButton>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                        OnClick="() => DeleteSchool(context.Id)" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudStack>
+</MudContainer>
+
+<MudDialog @bind-IsVisible="addDialogOpen" MaxWidth="MaxWidth.Small">
+    <DialogContent>
+        <SchoolForm OnSaved="Save" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="CloseAddDialog">Close</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
-    //Make a list of Schools that we can load
-    List<School> schools = new List<School>();
-    //Fires when the page first loads
+    List<School> schools = new();
+    bool addDialogOpen = false;
+
     protected override async Task OnInitializedAsync()
     {
-        //Call our service, to fill our list
         schools = await _schoolService.GetAllAsync();
-        //Let the GUI know state changed
-        StateHasChanged();
     }
 
-    public async Task Save()
+    private async Task Save()
     {
-        //Refresh our list of schools
         schools = await _schoolService.GetAllAsync();
+        addDialogOpen = false;
         StateHasChanged();
     }
 
+    private void OpenAddDialog() => addDialogOpen = true;
+    private void CloseAddDialog() => addDialogOpen = false;
 
+    private async Task DeleteSchool(int id)
+    {
+        var ok = await _schoolService.DeleteAsync(id);
+        if (ok)
+        {
+            schools = await _schoolService.GetAllAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateToDepartments(int schoolId)
+    {
+        // placeholder: navigate to department page filtered by this school if route exists
+    }
 }

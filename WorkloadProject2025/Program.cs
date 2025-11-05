@@ -33,8 +33,8 @@ builder.Services.AddScoped<IFacultyWorkLoadService, FacultyWorkLoadService>();
 builder.Services.AddScoped<IFacultyService, FacultyService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ITermService, TermService>();
-
-
+builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
+builder.Services.AddScoped<IWorkloadCalculationService, WorkloadCalculationService>();
 
 builder.Services.AddAuthentication(options =>
     {

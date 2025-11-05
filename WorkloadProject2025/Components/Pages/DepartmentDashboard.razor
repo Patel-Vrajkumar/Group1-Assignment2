@@ -4,6 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
 @inject ApplicationDbContext _context
+@inject ILogger<DepartmentDashboard> Logger
 
 <PageTitle>Department Dashboard</PageTitle>
 
@@ -12,6 +13,11 @@
         <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
         Department Dashboard
     </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+    }
 
     <!-- Department Selector -->
     <MudCard Class="mb-4">
@@ -42,177 +48,194 @@
         </MudCardContent>
     </MudCard>
 
-    <!-- Summary Cards -->
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <div>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Departments</MudText>
-                            <MudText Typo="Typo.h4">@totalDepartments</MudText>
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <div>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
-                            <MudText Typo="Typo.h4">@totalPrograms</MudText>
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <div>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
-                            <MudText Typo="Typo.h4">@totalCourses</MudText>
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <div>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Avg Programs/Dept</MudText>
-                            <MudText Typo="Typo.h4">@avgProgramsPerDept.ToString("F1")</MudText>
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.Equalizer" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
+    @if (departments.Count ==0)
+    {
+        <MudAlert Severity="Severity.Info">No departments found. Add departments and programs to see analytics.</MudAlert>
+    }
+    else
+    {
+        <!-- Summary Cards -->
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Departments</MudText>
+                                <MudText Typo="Typo.h4">@totalDepartments</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
+                                <MudText Typo="Typo.h4">@totalPrograms</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
+                                <MudText Typo="Typo.h4">@totalCourses</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Avg Programs/Dept</MudText>
+                                <MudText Typo="Typo.h4">@avgProgramsPerDept.ToString("F1")</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Equalizer" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
 
-    <!-- Charts Grid -->
-    <MudGrid>
-        <!-- Departments by School Area Chart -->
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Departments by School</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <ApexChart TItem="ChartData"
-                               Title="Department Distribution"
-                               Height="350">
-                        <ApexPointSeries TItem="ChartData"
-                                         Items="departmentsBySchoolData"
-                                         Name="Departments"
-                                         SeriesType="SeriesType.Area"
-                                         XValue="@(e => e.Label)"
-                                         YValue="@(e => e.Value)"
-                                         OrderBy="e => e.X" />
-                    </ApexChart>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        <!-- Charts Grid -->
+        <MudGrid>
+            <!-- Departments by School Area Chart -->
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Departments by School</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <ApexChart TItem="ChartData"
+                                   Title="Department Distribution"
+                                   Height="350">
+                            <ApexPointSeries TItem="ChartData"
+                                             Items="departmentsBySchoolData"
+                                             Name="Departments"
+                                             SeriesType="SeriesType.Area"
+                                             XValue="@(e => e.Label)"
+                                             YValue="@(e => e.Value)"
+                                             OrderBy="e => e.X" />
+                        </ApexChart>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-        <!-- Programs per Department Radar Chart -->
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Programs per Department</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <ApexChart TItem="ChartData"
-                               Title="Program Count"
-                               Height="350">
-                        <ApexPointSeries TItem="ChartData"
-                                         Items="programsPerDepartmentData"
-                                         Name="Programs"
-                                         SeriesType="SeriesType.Radar"
-                                         XValue="@(e => e.Label)"
-                                         YValue="@(e => e.Value)"
-                                         OrderBy="e => e.X" />
-                    </ApexChart>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+            <!-- Programs per Department Radar Chart -->
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Programs per Department</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <ApexChart TItem="ChartData"
+                                   Title="Program Count"
+                                   Height="350">
+                            <ApexPointSeries TItem="ChartData"
+                                             Items="programsPerDepartmentData"
+                                             Name="Programs"
+                                             SeriesType="SeriesType.Radar"
+                                             XValue="@(e => e.Label)"
+                                             YValue="@(e => e.Value)"
+                                             OrderBy="e => e.X" />
+                        </ApexChart>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-        <!-- Courses per Department Column Chart -->
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Courses per Department</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <ApexChart TItem="ChartData"
-                               Title="Total Courses"
-                               Height="350">
-                        <ApexPointSeries TItem="ChartData"
-                                         Items="coursesPerDepartmentData"
-                                         Name="Courses"
-                                         SeriesType="SeriesType.Bar"
-                                         XValue="@(e => e.Label)"
-                                         YValue="@(e => e.Value)"
-                                         OrderBy="e => e.X" />
-                    </ApexChart>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+            <!-- Courses per Department Column Chart -->
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Courses per Department</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <ApexChart TItem="ChartData"
+                                   Title="Total Courses"
+                                   Height="350">
+                            <ApexPointSeries TItem="ChartData"
+                                             Items="coursesPerDepartmentData"
+                                             Name="Courses"
+                                             SeriesType="SeriesType.Bar"
+                                             XValue="@(e => e.Label)"
+                                             YValue="@(e => e.Value)"
+                                             OrderBy="e => e.X" />
+                        </ApexChart>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-        <!-- Department Size Comparison Pie Chart -->
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Department Size Comparison</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <ApexChart TItem="ChartData"
-                               Title="Programs + Courses Combined"
-                               Height="350">
-                        <ApexPointSeries TItem="ChartData"
-                                         Items="departmentSizeData"
-                                         Name="Total Items"
-                                         SeriesType="SeriesType.PolarArea"
-                                         XValue="@(e => e.Label)"
-                                         YValue="@(e => e.Value)"
-                                         OrderBy="e => e.X" />
-                    </ApexChart>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
+            <!-- Department Size Comparison Pie Chart -->
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Department Size Comparison</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <ApexChart TItem="ChartData"
+                                   Title="Programs + Courses Combined"
+                                   Height="350">
+                            <ApexPointSeries TItem="ChartData"
+                                             Items="departmentSizeData"
+                                             Name="Total Items"
+                                             SeriesType="SeriesType.PolarArea"
+                                             XValue="@(e => e.Label)"
+                                             YValue="@(e => e.Value)"
+                                             OrderBy="e => e.X" />
+                        </ApexChart>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
 </MudContainer>
 
 @code {
     private List<Department> departments = new();
-    private int? selectedDepartmentId = null;
+    private int? _selectedDepartmentId;
+    private int? selectedDepartmentId
+    {
+        get => _selectedDepartmentId;
+        set
+        {
+            _selectedDepartmentId = value;
+            _ = CalculateStatistics();
+        }
+    }
     
     // Summary statistics
-    private int totalDepartments = 0;
-    private int totalPrograms = 0;
-    private int totalCourses = 0;
-    private decimal avgProgramsPerDept = 0;
+    private int totalDepartments =0;
+    private int totalPrograms =0;
+    private int totalCourses =0;
+    private decimal avgProgramsPerDept =0;
 
     // Chart data
     private List<ChartData> departmentsBySchoolData = new();
     private List<ChartData> programsPerDepartmentData = new();
     private List<ChartData> coursesPerDepartmentData = new();
     private List<ChartData> departmentSizeData = new();
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -221,88 +244,103 @@
 
     private async Task LoadData()
     {
-        // Load all departments with related data
-        departments = await _context.Departments
-            .Include(d => d.School)
-            .Include(d => d.ProgramsOfStudy)
+        try
+        {
+            departments = await _context.Departments
+                .AsNoTracking()
+                .Include(d => d.School)
+                .Include(d => d.ProgramsOfStudy)
                 .ThenInclude(p => p.Courses)
-            .ToListAsync();
+                .ToListAsync();
 
-        await CalculateStatistics();
+            await CalculateStatistics();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load data: {ex.Message}";
+            Logger.LogError(ex, "DepartmentDashboard load failed");
+        }
     }
 
     private async Task CalculateStatistics()
     {
-        departmentsBySchoolData.Clear();
-        programsPerDepartmentData.Clear();
-        coursesPerDepartmentData.Clear();
-        departmentSizeData.Clear();
-
-        if (selectedDepartmentId.HasValue)
+        try
         {
-            // Filter by selected department
-            var selectedDept = departments.FirstOrDefault(d => d.Id == selectedDepartmentId.Value);
-            if (selectedDept != null)
-            {
-                totalDepartments = 1;
-                totalPrograms = selectedDept.ProgramsOfStudy?.Count ?? 0;
-                totalCourses = selectedDept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0;
-                avgProgramsPerDept = totalPrograms;
+            departmentsBySchoolData.Clear();
+            programsPerDepartmentData.Clear();
+            coursesPerDepartmentData.Clear();
+            departmentSizeData.Clear();
 
-                // For single department, show program-level breakdown
-                if (selectedDept.ProgramsOfStudy != null)
+            if (selectedDepartmentId.HasValue)
+            {
+                // Filter by selected department
+                var selectedDept = departments.FirstOrDefault(d => d.Id == selectedDepartmentId.Value);
+                if (selectedDept != null)
                 {
-                    foreach (var program in selectedDept.ProgramsOfStudy)
+                    totalDepartments =1;
+                    totalPrograms = selectedDept.ProgramsOfStudy?.Count ??0;
+                    totalCourses = selectedDept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ??0;
+                    avgProgramsPerDept = totalPrograms;
+
+                    // For single department, show program-level breakdown
+                    if (selectedDept.ProgramsOfStudy != null)
                     {
-                        var courseCount = program.Courses?.Count ?? 0;
-                        programsPerDepartmentData.Add(new ChartData { Label = program.Name, Value = 1 });
-                        coursesPerDepartmentData.Add(new ChartData { Label = program.Name, Value = courseCount });
-                        departmentSizeData.Add(new ChartData { Label = program.Name, Value = courseCount + 1 });
+                        foreach (var program in selectedDept.ProgramsOfStudy)
+                        {
+                            var courseCount = program.Courses?.Count ??0;
+                            programsPerDepartmentData.Add(new ChartData { Label = program.Name, Value =1m });
+                            coursesPerDepartmentData.Add(new ChartData { Label = program.Name, Value = Convert.ToDecimal(courseCount) });
+                            departmentSizeData.Add(new ChartData { Label = program.Name, Value = Convert.ToDecimal(courseCount +1) });
+                        }
                     }
+
+                    departmentsBySchoolData.Add(new ChartData { Label = selectedDept.School?.Name ?? "Unknown", Value =1m });
+                }
+            }
+            else
+            {
+                // Show all departments
+                totalDepartments = departments.Count;
+                totalPrograms = departments.Sum(d => d.ProgramsOfStudy?.Count ??0);
+                totalCourses = departments.Sum(d => d.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ??0);
+                avgProgramsPerDept = totalDepartments >0 ? (decimal)totalPrograms / totalDepartments :0;
+
+                // Group by school for departments
+                var schoolGroups = departments.GroupBy(d => d.School?.Name ?? "Unknown");
+                foreach (var group in schoolGroups)
+                {
+                    departmentsBySchoolData.Add(new ChartData { Label = group.Key, Value = Convert.ToDecimal(group.Count()) });
                 }
 
-                departmentsBySchoolData.Add(new ChartData { Label = selectedDept.School?.Name ?? "Unknown", Value = 1 });
+                // Programs and courses per department (limit for readability)
+                foreach (var dept in departments.Take(10))
+                {
+                    var programCount = dept.ProgramsOfStudy?.Count ??0;
+                    var courseCount = dept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ??0;
+                    
+                    programsPerDepartmentData.Add(new ChartData { Label = dept.Name, Value = Convert.ToDecimal(programCount) });
+                    coursesPerDepartmentData.Add(new ChartData { Label = dept.Name, Value = Convert.ToDecimal(courseCount) });
+                    departmentSizeData.Add(new ChartData { Label = dept.Name, Value = Convert.ToDecimal(programCount + courseCount) });
+                }
             }
         }
-        else
+        catch (Exception ex)
         {
-            // Show all departments
-            totalDepartments = departments.Count;
-            totalPrograms = departments.Sum(d => d.ProgramsOfStudy?.Count ?? 0);
-            totalCourses = departments.Sum(d => d.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0);
-            avgProgramsPerDept = totalDepartments > 0 ? (decimal)totalPrograms / totalDepartments : 0;
-
-            // Group by school for departments
-            var schoolGroups = departments.GroupBy(d => d.School?.Name ?? "Unknown");
-            foreach (var group in schoolGroups)
-            {
-                departmentsBySchoolData.Add(new ChartData { Label = group.Key, Value = group.Count() });
-            }
-
-            // Programs and courses per department
-            foreach (var dept in departments.Take(10)) // Limit to top 10 for readability
-            {
-                var programCount = dept.ProgramsOfStudy?.Count ?? 0;
-                var courseCount = dept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0;
-                
-                programsPerDepartmentData.Add(new ChartData { Label = dept.Name, Value = programCount });
-                coursesPerDepartmentData.Add(new ChartData { Label = dept.Name, Value = courseCount });
-                departmentSizeData.Add(new ChartData { Label = dept.Name, Value = programCount + courseCount });
-            }
+            errorMessage = $"Failed to calculate statistics: {ex.Message}";
+            Logger.LogError(ex, "DepartmentDashboard calculation failed");
         }
-
         await Task.CompletedTask;
     }
 
     private async Task RefreshDashboard()
     {
-        await CalculateStatistics();
+        await LoadData();
         StateHasChanged();
     }
 
     public class ChartData
     {
-        public string Label { get; set; } = "";
+        public string Label { get; set; } = string.Empty;
         public decimal Value { get; set; }
         public object X => Label;
     }
