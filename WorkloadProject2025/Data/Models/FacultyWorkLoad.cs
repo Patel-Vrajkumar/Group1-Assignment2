@@ -11,6 +11,10 @@
         public int? CourseId { get; set; }
         public Course? Course { get; set; }
 
+        // Program for cross-department/multi-program tracking
+        public int? ProgramOfStudyId { get; set; }
+        public ProgramOfStudy? ProgramOfStudy { get; set; }
+
         public int TermId { get; set; }
         public Term? Term { get; set; }
 
@@ -22,8 +26,22 @@
         public string? Description { get; set; }
         public DateTime? DateAssigned { get; set; } = DateTime.Now;
 
+        // Notes/comments per workload item
+        public string? Notes { get; set; }
 
+        // Co-teaching support
+        public bool IsPrimaryInstructor { get; set; } = true;
+        // Optional percentage share between0 and100
+        public decimal? PercentShare { get; set; }
 
+        // Coverage tracking: this workload covers another instructor's class
+        public bool IsCoverage { get; set; }
+        public string? CoveredForFacultyEmail { get; set; }
+
+        // HR processing flags and date tracking
+        public bool HRProcessed { get; set; }
+        public DateTime? HRProcessedDate { get; set; }
+        public string? HRNotes { get; set; }
     }
 
     public enum Workload
@@ -35,7 +53,7 @@
         Coordinator =2,
         Project =3,
 
-        // Non-teaching / release / admin (new)
+        // Non-teaching / release / admin
         Coordinator_Release =4,
         Research_Release =5,
         Chair_Release =6,

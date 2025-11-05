@@ -6,7 +6,7 @@ namespace WorkloadProject2025.Data
     {
         public static void SeedData(ApplicationDbContext context)
         {
-            // Seed Schools, Departments, Programs, and Courses if not present
+            // Seed Schools/Departments/Programs/Courses if missing
             if (!context.Schools.Any())
             {
                 // Create Schools based on Medicine Hat College structure
@@ -237,29 +237,152 @@ namespace WorkloadProject2025.Data
 
                 // Add all schools to context
                 context.Schools.AddRange(schoolOfArts, schoolOfTrades, schoolOfHealth, schoolOfBusiness);
-
                 context.SaveChanges();
             }
 
-            // Seed Workload Categories for schedule July1,2020 - June30,2024 if not present
+            // Seed Terms
+            if (!context.Terms.Any())
+            {
+                var terms = new List<Term>
+                {
+                    new Term { IntakeName = "Fall2024", StartDate = new DateTime(2024,9,1), EndDate = new DateTime(2024,12,20) },
+                    new Term { IntakeName = "Winter2025", StartDate = new DateTime(2025,1,6), EndDate = new DateTime(2025,4,25) },
+                    new Term { IntakeName = "Spring2025", StartDate = new DateTime(2025,5,5), EndDate = new DateTime(2025,8,15) }
+                };
+                context.Terms.AddRange(terms);
+                context.SaveChanges();
+            }
+
+            // Seed Faculty
+            if (!context.Faculty.Any())
+            {
+                var faculty = new List<Faculty>
+                {
+                    new Faculty { Email = "alice.johnson@example.edu", FirstName = "Alice", LastName = "Johnson", PhoneNumber = "555-1001", EmploymentCategory = EmploymentCategory.FullTime, IsActive = true },
+                    new Faculty { Email = "bob.smith@example.edu", FirstName = "Bob", LastName = "Smith", PhoneNumber = "555-1002", EmploymentCategory = EmploymentCategory.PartTime, IsActive = true },
+                    new Faculty { Email = "charlie.lee@example.edu", FirstName = "Charlie", LastName = "Lee", PhoneNumber = "555-1003", EmploymentCategory = EmploymentCategory.Adjunct, IsActive = true },
+                    new Faculty { Email = "dana.khan@example.edu", FirstName = "Dana", LastName = "Khan", PhoneNumber = "555-1004", EmploymentCategory = EmploymentCategory.FullTime, IsActive = true }
+                };
+                context.Faculty.AddRange(faculty);
+                context.SaveChanges();
+            }
+
+            // Seed Workload Categories
             if (!context.WorkloadCategories.Any())
             {
-                var start = new DateTime(2020,7,1);
-                var end = new DateTime(2024,6,30);
-
-                var categories = new List<WorkloadCategory>
+                var now = DateTime.UtcNow.Date;
+                var cats = new List<WorkloadCategory>
                 {
-                    // Category1: degree/UT
-                    new WorkloadCategory { MiniumHours =420, MaximumHours =462, StartDate = start, EndDate = end },
-                    // Category2: diplomas/certificates
-                    new WorkloadCategory { MiniumHours =462, MaximumHours =504, StartDate = start, EndDate = end },
-                    // Category3: art & design
-                    new WorkloadCategory { MiniumHours =504, MaximumHours =550, StartDate = start, EndDate = end },
-                    // Category4: trades/clinical
-                    new WorkloadCategory { MiniumHours =640, MaximumHours =720, StartDate = start, EndDate = end },
+                    new WorkloadCategory { Name = "Full Time Standard", MiniumHours =25, MaximumHours =40, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.FullTime },
+                    new WorkloadCategory { Name = "Part Time", MiniumHours =3, MaximumHours =15, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.PartTime },
+                    new WorkloadCategory { Name = "Adjunct", MiniumHours =0, MaximumHours =12, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.Adjunct }
                 };
+                context.WorkloadCategories.AddRange(cats);
+                context.SaveChanges();
+            }
 
-                context.WorkloadCategories.AddRange(categories);
+            // Seed Faculty Workloads
+            if (!context.FacultyWorkLoads.Any())
+            {
+                var fall = context.Terms.First(t => t.IntakeName == "Fall2024");
+                var winter = context.Terms.First(t => t.IntakeName == "Winter2025");
+
+                // Resolve some programs/courses
+                var itProgram = context.ProgramsOfStudy.FirstOrDefault(p => p.Name == "Computer Systems Technology");
+                var englishProg = context.ProgramsOfStudy.FirstOrDefault(p => p.Name == "English Literature");
+                var businessProg = context.ProgramsOfStudy.FirstOrDefault(p => p.Name == "Business Administration");
+
+                var progFund = context.Courses.FirstOrDefault(c => c.Name == "Programming Fundamentals");
+                var dbMgmt = context.Courses.FirstOrDefault(c => c.Name == "Database Management");
+                var comp = context.Courses.FirstOrDefault(c => c.Name == "English Composition");
+                var marketing = context.Courses.FirstOrDefault(c => c.Name == "Marketing Principles");
+
+                var alice = context.Faculty.First(f => f.Email == "alice.johnson@example.edu");
+                var bob = context.Faculty.First(f => f.Email == "bob.smith@example.edu");
+                var charlie = context.Faculty.First(f => f.Email == "charlie.lee@example.edu");
+                var dana = context.Faculty.First(f => f.Email == "dana.khan@example.edu");
+
+                var items = new List<FacultyWorkLoad>();
+
+                // Alice: teaches Programming Fundamentals (Fall), full load
+                if (itProgram != null && progFund != null)
+                {
+                    items.Add(new FacultyWorkLoad
+                    {
+                        FacultyEmail = alice.Email,
+                        ProgramOfStudyId = itProgram.Id,
+                        CourseId = progFund.Id,
+                        TermId = fall.Id,
+                        Workload = Workload.Course_Lecture,
+                        HoursAssigned =30,
+                        Description = "Intro programming course",
+                        IsPrimaryInstructor = true,
+                        HRProcessed = true,
+                        HRProcessedDate = DateTime.UtcNow
+                    });
+                }
+
+                // Co-teach Database Management (Fall): Alice50%, Bob50%
+                if (itProgram != null && dbMgmt != null)
+                {
+                    items.Add(new FacultyWorkLoad
+                    {
+                        FacultyEmail = alice.Email,
+                        ProgramOfStudyId = itProgram.Id,
+                        CourseId = dbMgmt.Id,
+                        TermId = fall.Id,
+                        Workload = Workload.Course_Lecture,
+                        HoursAssigned =20,
+                        PercentShare =50,
+                        IsPrimaryInstructor = true
+                    });
+                    items.Add(new FacultyWorkLoad
+                    {
+                        FacultyEmail = bob.Email,
+                        ProgramOfStudyId = itProgram.Id,
+                        CourseId = dbMgmt.Id,
+                        TermId = fall.Id,
+                        Workload = Workload.Course_Lecture,
+                        HoursAssigned =20,
+                        PercentShare =50,
+                        IsPrimaryInstructor = false
+                    });
+                }
+
+                // Charlie covers Marketing (Winter) for Bob
+                if (businessProg != null && marketing != null)
+                {
+                    items.Add(new FacultyWorkLoad
+                    {
+                        FacultyEmail = charlie.Email,
+                        ProgramOfStudyId = businessProg.Id,
+                        CourseId = marketing.Id,
+                        TermId = winter.Id,
+                        Workload = Workload.Course_Lecture,
+                        HoursAssigned =15,
+                        IsCoverage = true,
+                        CoveredForFacultyEmail = bob.Email,
+                        HRProcessed = false,
+                        HRNotes = "Pending HR approval"
+                    });
+                }
+
+                // Dana teaches English Composition (Winter)
+                if (englishProg != null && comp != null)
+                {
+                    items.Add(new FacultyWorkLoad
+                    {
+                        FacultyEmail = dana.Email,
+                        ProgramOfStudyId = englishProg.Id,
+                        CourseId = comp.Id,
+                        TermId = winter.Id,
+                        Workload = Workload.Course_Lecture,
+                        HoursAssigned =25,
+                        Description = "Writing fundamentals"
+                    });
+                }
+
+                context.FacultyWorkLoads.AddRange(items);
                 context.SaveChanges();
             }
         }

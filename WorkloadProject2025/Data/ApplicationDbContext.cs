@@ -23,6 +23,11 @@ namespace WorkloadProject2025.Data
             modelBuilder.Entity<FacultyWorkLoad>()
                 .Property(f => f.HoursAssigned)
                 .HasPrecision(18, 2);
+
+            // Configure precision for PercentShare as well
+            modelBuilder.Entity<FacultyWorkLoad>()
+                .Property(f => f.PercentShare)
+                .HasPrecision(18, 2);
         }
     }
 }

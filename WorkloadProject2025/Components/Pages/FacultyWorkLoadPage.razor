@@ -2,135 +2,511 @@
 @using WorkloadProject2025.Data
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using System.IO
 @inject ApplicationDbContext _context
+@inject FacultyWorkLoadService WorkloadService
+@inject WorkloadSummaryService SummaryService
+@inject WorkloadCategoriesService CategoriesService
+@inject ISnackbar Snackbar
 @using MudBlazor
 
 <PageTitle>Faculty Workload Assignment</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudPaper Elevation="0" Class="pa-4 mb-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large" Color="Color.Primary" />
-                <div>
-                    <MudText Typo="Typo.h4" Class="mb-1">Faculty Workload Assignment</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Assign and track workload for faculty members</MudText>
-                </div>
-            </MudStack>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="LoadData">
-                Refresh
-            </MudButton>
-        </MudStack>
-    </MudPaper>
+ <MudPaper Elevation="0" Class="pa-4 mb-4">
+ <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+ <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+ <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large" Color="Color.Primary" />
+ <div>
+ <MudText Typo="Typo.h4" Class="mb-1">Faculty Workload Assignment</MudText>
+ <MudText Typo="Typo.body2" Color="Color.Secondary">Assign and track workload for faculty members</MudText>
+ </div>
+ </MudStack>
+ <MudStack Row="true" Spacing="2">
+ <MudSelect Label="Filter Term" T="int?" @bind-Value="filterTermId" Dense="true" Clearable="true" Style="min-width:220px">
+ <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
+ @foreach (var t in terms)
+ {
+ <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName</MudSelectItem>
+ }
+ </MudSelect>
+ <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="SelectAll">Select All</MudButton>
+ <MudButton Variant="Variant.Text" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.ClearAll" OnClick="ClearSelection">Clear Selection</MudButton>
+ <MudSpacer />
+ <MudSelect Label="From Term" T="int" @bind-Value="fromTermId" Dense="true" Style="min-width:200px">
+ @foreach (var t in terms)
+ {
+ <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem>
+ }
+ </MudSelect>
+ <MudSelect Label="To Term" T="int" @bind-Value="toTermId" Dense="true" Style="min-width:200px">
+ @foreach (var t in terms)
+ {
+ <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem>
+ }
+ </MudSelect>
+ <MudTextField T="string" Label="Faculty Email (optional)" @bind-Value="copyFacultyEmail" Dense="true" Style="min-width:240px" />
+ <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" Disabled="@(!CanCopy())" OnClick="CopyFromTerm">Copy Workloads</MudButton>
+ <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData">Refresh</MudButton>
+ </MudStack>
+ </MudStack>
+ </MudPaper>
 
-    <FacultyWorkLoadForm OnSaved="LoadData"></FacultyWorkLoadForm>
+ <FacultyWorkLoadForm OnSaved="LoadData"></FacultyWorkLoadForm>
 
-    <MudCard Class="mx-auto mt-6" Elevation="4">
-        <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <CardHeaderContent>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <div>
-                        <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Current Faculty Workloads</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">Total: @workloads.Count assignments • @workloads.Sum(w => w.HoursAssigned) total hours</MudText>
-                    </div>
-                </MudStack>
-            </CardHeaderContent>
-        </MudCardHeader>
+ <MudGrid Class="mt-4" Spacing="3">
+ <MudItem xs="12" md="7">
+ <MudCard Elevation="4">
+ <MudCardHeader Style="background: linear-gradient(135deg, #667eea0%, #764ba2100%); color: white;">
+ <CardHeaderContent>
+ <MudText Typo="Typo.h6">Current Faculty Workloads</MudText>
+ </CardHeaderContent>
+ </MudCardHeader>
+ <MudCardContent>
+ @if (workloads.Any())
+ {
+ <MudGrid Spacing="3">
+ @foreach (var w in workloads.OrderByDescending(x => x.DateAssigned))
+ {
+ var chipColor = GetWorkloadColor(w.HoursAssigned);
+ <MudItem xs="12" md="6">
+ <MudCard Elevation="2" Class="workload-card" Style="height:100%;">
+ <MudCardHeader Style="background: linear-gradient(135deg, #f5f7fa0%, #c3cfe2100%);">
+ <CardHeaderContent>
+ <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+ <div>
+ <MudText Typo="Typo.h6" Style="font-weight:600;">@w.FacultyEmail</MudText>
+ <MudChip T="string" Size="Size.Small" Color="chipColor" Icon="@Icons.Material.Filled.Timer" Style="font-weight:500;">
+ @w.HoursAssigned hrs
+ </MudChip>
+ </div>
+ <MudCheckBox T="bool" Checked="@selectedIds.Contains(w.Id)" ValueChanged="@(v => ToggleSelection(w.Id, v))" />
+ </MudStack>
+ </CardHeaderContent>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudStack Spacing="2">
+ <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left:4px solid #667eea; border-radius:4px;">
+ <MudText Typo="Typo.subtitle2" Style="font-weight:600; color: #667eea;">
+ <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Small" /> @w.Workload.ToString().Replace("_", " ")
+ </MudText>
+ </MudPaper>
+ 
+ @if (!string.IsNullOrWhiteSpace(w.Description))
+ {
+ <MudText Typo="Typo.body2" Style="color: #666;">
+ <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /> @w.Description
+ </MudText>
+ }
+ 
+ @if (!string.IsNullOrWhiteSpace(w.Notes))
+ {
+ <MudText Typo="Typo.caption" Color="Color.Secondary">
+ <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" /> @w.Notes
+ </MudText>
+ }
+ 
+ <MudDivider />
+ 
+ <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+ <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Info" />
+ <MudText Typo="Typo.caption" Color="Color.Secondary">
+ Assigned: @(w.DateAssigned?.ToString("MMM dd, yyyy") ?? "N/A")
+ </MudText>
+ </MudStack>
+ </MudStack>
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ }
+ </MudGrid>
+ }
+ else
+ {
+ <MudAlert Severity="Severity.Info" Class="mt-4">
+ <MudText Typo="Typo.body1">No workload assignments found. Add a workload assignment using the form above.</MudText>
+ </MudAlert>
+ }
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ <MudItem xs="12" md="5">
+ <MudStack Spacing="2">
+ <MudCard>
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Instructor Totals</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ @if (instructorSummaries.Any())
+ {
+ <MudStack Spacing="1">
+ @foreach (var s in instructorSummaries)
+ {
+ var warn = GetInstructorWarning(s);
+ <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+ <MudText Typo="Typo.body1">@s.FacultyEmail</MudText>
+ <MudChip T="string" Color="@(warn == null ? Color.Success : Color.Warning)" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Timer">@s.TotalHours.ToString("0.##") hrs</MudChip>
+ </MudStack>
+ @if (warn != null)
+ {
+ <MudText Typo="Typo.caption" Color="Color.Warning">@warn</MudText>
+ }
+ }
+ </MudStack>
+ }
+ else
+ {
+ <MudText Typo="Typo.caption">No instructors found for selection.</MudText>
+ }
+ </MudCardContent>
+ </MudCard>
 
-        <MudCardContent>
-            @if (workloads.Any())
-            {
-                <MudGrid Spacing="3">
-                    @foreach (var w in workloads.OrderByDescending(x => x.DateAssigned))
-                    {
-                        var chipColor = GetWorkloadColor(w.HoursAssigned);
-                        <MudItem xs="12" md="6" lg="4">
-                            <MudCard Elevation="2" Class="workload-card" Style="height: 100%;">
-                                <MudCardHeader Style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-                                    <CardHeaderContent>
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                            <div>
-                                                <MudText Typo="Typo.h6" Style="font-weight: 600;">@w.FacultyEmail</MudText>
-                                                <MudChip T="string" Size="Size.Small" Color="chipColor" Icon="@Icons.Material.Filled.Timer" Style="font-weight: 500;">
-                                                    @w.HoursAssigned hrs
-                                                </MudChip>
-                                            </div>
-                                        </MudStack>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                                <MudCardContent>
-                                    <MudStack Spacing="2">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
-                                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #667eea;">
-                                                <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Small" /> @w.Workload.ToString().Replace("_", " ")
-                                            </MudText>
-                                        </MudPaper>
-                                        
-                                        @if (!string.IsNullOrWhiteSpace(w.Description))
-                                        {
-                                            <MudText Typo="Typo.body2" Style="color: #666;">
-                                                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /> @w.Description
-                                            </MudText>
-                                        }
-                                        
-                                        <MudDivider />
-                                        
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Info" />
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                Assigned: @(w.DateAssigned?.ToString("MMM dd, yyyy") ?? "N/A")
-                                            </MudText>
-                                        </MudStack>
-                                    </MudStack>
-                                </MudCardContent>
-                            </MudCard>
-                        </MudItem>
-                    }
-                </MudGrid>
-            }
-            else
-            {
-                <MudAlert Severity="Severity.Info" Class="mt-4">
-                    <MudText Typo="Typo.body1">No workload assignments found. Add a workload assignment using the form above.</MudText>
-                </MudAlert>
-            }
-        </MudCardContent>
-    </MudCard>
+ <MudCard>
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Program Totals</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ @if (programTotals.Any())
+ {
+ <MudTable Dense="true" Hover="true" Items="@programTotals">
+ <HeaderContent>
+ <MudTh>Program</MudTh>
+ <MudTh align="right">Hours</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="Program">@context.Key</MudTd>
+ <MudTd DataLabel="Hours" Align="Right">@context.Value.ToString("0.##")</MudTd>
+ </RowTemplate>
+ <FooterContent>
+ <MudTd><b>Grand Total</b></MudTd>
+ <MudTd Align="Right"><b>@grandTotal.ToString("0.##")</b></MudTd>
+ </FooterContent>
+ </MudTable>
+ }
+ else
+ {
+ <MudText Typo="Typo.caption">No totals to display.</MudText>
+ }
+ </MudCardContent>
+ </MudCard>
+
+ <MudCard>
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Bulk Update Selected (@selectedIds.Count)</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudGrid Spacing="2">
+ <MudItem xs="12">
+ <MudText Typo="Typo.caption">Only fields set here will be updated.</MudText>
+ </MudItem>
+ <MudItem xs="12">
+ <MudSelect T="string" Label="Faculty Email" @bind-Value="bulkFacultyEmail" Clearable="true">
+ @foreach (var f in facultyOptions)
+ { <MudSelectItem Value="@f.Email">@f.FirstName @f.LastName (@f.Email)</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="int?" Label="Term" @bind-Value="bulkTermId" Clearable="true">
+ @foreach (var t in terms)
+ { <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="int?" Label="Program" @bind-Value="bulkProgramId" Clearable="true">
+ @foreach (var p in programOptions)
+ { <MudSelectItem Value="@((int?)p.Id)">@p.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="int?" Label="Course" @bind-Value="bulkCourseId" Clearable="true">
+ @foreach (var c in courseOptions)
+ { <MudSelectItem Value="@((int?)c.Id)">@c.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="int?" Label="Workload Category" @bind-Value="bulkCategoryId" Clearable="true">
+ @foreach (var cat in categoryOptions)
+ { <MudSelectItem Value="@((int?)cat.Id)">@cat.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="Workload?" Label="Workload Type" @bind-Value="bulkWorkload" Clearable="true">
+ @foreach (Workload type in Enum.GetValues(typeof(Workload)))
+ { <MudSelectItem Value="@type">@type.ToString().Replace("_"," ")</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudNumericField T="decimal?" Label="Hours Assigned" @bind-Value="bulkHours" Min="0" />
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="bool?" Label="Primary Instructor" @bind-Value="bulkIsPrimary">
+ <MudSelectItem Value="@((bool?)null)">Leave unchanged</MudSelectItem>
+ <MudSelectItem Value="@((bool?)true)">Primary</MudSelectItem>
+ <MudSelectItem Value="@((bool?)false)">Not Primary</MudSelectItem>
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="6">
+ <MudSelect T="PercentMode" Label="Percent Share" @bind-Value="percentShareMode">
+ <MudSelectItem Value="@PercentMode.None">Leave unchanged</MudSelectItem>
+ <MudSelectItem Value="@PercentMode.Set">Set value</MudSelectItem>
+ <MudSelectItem Value="@PercentMode.Clear">Clear (null)</MudSelectItem>
+ </MudSelect>
+ </MudItem>
+ @if (percentShareMode == PercentMode.Set)
+ {
+ <MudItem xs="6">
+ <MudNumericField T="decimal" Label="Percent Share Value" @bind-Value="percentShareValue" Min="0" Max="100" Adornment="Adornment.End" AdornmentText="%" />
+ </MudItem>
+ }
+ <MudItem xs="12">
+ <MudTextField T="string" Label="Notes" @bind-Value="bulkNotes" Lines="2" />
+ </MudItem>
+ </MudGrid>
+ </MudCardContent>
+ <MudCardActions>
+ <MudSpacer />
+ <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(selectedIds.Count==0)" OnClick="ApplyBulkUpdate">Apply to Selected</MudButton>
+ </MudCardActions>
+ </MudCard>
+
+ <MudCard>
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">CSV Import</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudGrid Spacing="2">
+ <MudItem xs="12" md="6">
+ <MudSelect T="int" Label="Target Term" @bind-Value="importTermId">
+ @foreach (var t in terms)
+ { <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="6">
+ <InputFile OnChange="OnCsvSelected" accept=".csv" />
+ </MudItem>
+ @if (lastImportMessage != null)
+ {
+ <MudItem xs="12">
+ <MudAlert Severity="Severity.Info">@lastImportMessage</MudAlert>
+ </MudItem>
+ }
+ @if (lastImportErrors?.Any() == true)
+ {
+ <MudItem xs="12">
+ <MudExpansionPanels>
+ <MudExpansionPanel>
+ <TitleContent>
+ Show Import Errors (@(lastImportErrors?.Count ??0))
+ </TitleContent>
+ <ChildContent>
+ <MudList T="string" Dense="true">
+ @foreach (var err in lastImportErrors!)
+ { <MudListItem T="string">@err</MudListItem> }
+ </MudList>
+ </ChildContent>
+ </MudExpansionPanel>
+ </MudExpansionPanels>
+ </MudItem>
+ }
+ </MudGrid>
+ </MudCardContent>
+ </MudCard>
+ </MudStack>
+ </MudItem>
+ </MudGrid>
 </MudContainer>
 
 <style>
-    .workload-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    
-    .workload-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
-    }
+ .workload-card { transition: transform0.2s ease-in-out, box-shadow0.2s ease-in-out; }
+ .workload-card:hover { transform: translateY(-4px); box-shadow:08px16px rgba(0,0,0,0.15) !important; }
 </style>
 
 @code {
-    private List<FacultyWorkLoad> workloads = new();
+ private enum PercentMode { None, Set, Clear }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
+ private List<FacultyWorkLoad> workloads = new();
+ private List<Term> terms = new();
+ private List<ProgramOfStudy> programOptions = new();
+ private List<Course> courseOptions = new();
+ private List<WorkloadCategory> categoryOptions = new();
+ private List<Faculty> facultyOptions = new();
+ private int fromTermId;
+ private int toTermId;
+ private string? copyFacultyEmail;
+ private int? filterTermId;
 
-    private async Task LoadData()
-    {
-        workloads = await _context.FacultyWorkLoads.ToListAsync();
-        StateHasChanged();
-    }
+ private List<InstructorSummary> instructorSummaries = new();
+ private Dictionary<string, decimal> programTotals = new();
+ private decimal grandTotal;
+ private HashSet<int> selectedIds = new();
 
-    private Color GetWorkloadColor(decimal hours)
-    {
-        if (hours >= 40) return Color.Error;
-        if (hours >= 25) return Color.Warning;
-        if (hours >= 10) return Color.Info;
-        return Color.Success;
-    }
+ // Bulk fields
+ private string? bulkFacultyEmail;
+ private int? bulkTermId;
+ private int? bulkCourseId;
+ private int? bulkProgramId;
+ private int? bulkCategoryId;
+ private Workload? bulkWorkload;
+ private decimal? bulkHours;
+ private bool? bulkIsPrimary;
+ private PercentMode percentShareMode = PercentMode.None; // None | Set | Clear
+ private decimal percentShareValue;
+ private string? bulkNotes;
+
+ // CSV import state
+ private int importTermId;
+ private IBrowserFile? importFile;
+ private string? lastImportMessage;
+ private List<string>? lastImportErrors;
+
+ protected override async Task OnInitializedAsync()
+ {
+ terms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ programOptions = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courseOptions = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
+ categoryOptions = await _context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
+ facultyOptions = await _context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
+ if (terms.Any()) { fromTermId = terms.First().Id; toTermId = terms.First().Id; importTermId = terms.First().Id; }
+ await LoadData();
+ }
+
+ private async Task LoadData()
+ {
+ var q = _context.FacultyWorkLoads
+ .Include(w => w.Faculty)
+ .Include(w => w.Course)
+ .Include(w => w.ProgramOfStudy)
+ .Include(w => w.WorkloadCategory)
+ .AsQueryable();
+ if (filterTermId.HasValue) q = q.Where(w => w.TermId == filterTermId.Value);
+ workloads = await q.OrderByDescending(w => w.DateAssigned).ToListAsync();
+ await BuildSummaries();
+ StateHasChanged();
+ }
+
+ private async Task BuildSummaries()
+ {
+ // Program totals with split logic
+ programTotals = workloads
+ .GroupBy(w => w.ProgramOfStudy?.Name ?? "(No Program)")
+ .ToDictionary(g => g.Key, g => g.Sum(EffectiveHours));
+ grandTotal = programTotals.Values.Sum();
+
+ // Instructor totals using service
+ var emails = workloads.Select(w => w.FacultyEmail).Distinct().ToList();
+ var tasks = emails.Select(email => SummaryService.GetInstructorSummaryAsync(email, filterTermId));
+ instructorSummaries = (await Task.WhenAll(tasks)).OrderByDescending(s => s.TotalHours).ToList();
+ }
+
+ private static decimal EffectiveHours(FacultyWorkLoad i)
+ {
+ var share = i.PercentShare.HasValue ? (i.PercentShare.Value/100m) :1m;
+ return i.HoursAssigned * share;
+ }
+
+ private string? GetInstructorWarning(InstructorSummary s)
+ {
+ var faculty = workloads.FirstOrDefault(w => w.FacultyEmail == s.FacultyEmail)?.Faculty;
+ if (faculty == null) return null;
+ var asOf = terms.FirstOrDefault(t => t.Id == filterTermId)?.StartDate ?? DateTime.Today;
+ // Fetch applicable category synchronously for display only
+ var catTask = CategoriesService.GetCurrentForFacultyAsync(faculty, asOf);
+ catTask.Wait();
+ var cat = catTask.Result;
+ if (cat == null) return null;
+ if (s.TotalHours > cat.MaximumHours) return $"Over maximum ({s.TotalHours:0.##} > {cat.MaximumHours})";
+ if (s.TotalHours < cat.MiniumHours) return $"Below minimum ({s.TotalHours:0.##} < {cat.MiniumHours})";
+ return null;
+ }
+
+ private bool CanCopy() => fromTermId >0 && toTermId >0 && fromTermId != toTermId;
+
+ private async Task CopyFromTerm()
+ {
+ try
+ {
+ var added = await WorkloadService.CopyWorkloadsAsync(fromTermId, toTermId, string.IsNullOrWhiteSpace(copyFacultyEmail) ? null : copyFacultyEmail);
+ Snackbar.Add($"Copied {added} workload(s).", MudBlazor.Severity.Success);
+ await LoadData();
+ }
+ catch (Exception ex)
+ {
+ Snackbar.Add($"Copy failed: {ex.Message}", MudBlazor.Severity.Error);
+ }
+ }
+
+ private void ToggleSelection(int id, bool isChecked)
+ {
+ if (isChecked) selectedIds.Add(id); else selectedIds.Remove(id);
+ }
+
+ private void SelectAll()
+ {
+ selectedIds = workloads.Select(w => w.Id).ToHashSet();
+ }
+ private void ClearSelection()
+ {
+ selectedIds.Clear();
+ }
+
+ private async Task ApplyBulkUpdate()
+ {
+ try
+ {
+ var req = new BulkUpdateRequest
+ {
+ Ids = selectedIds.ToList(),
+ FacultyEmail = string.IsNullOrWhiteSpace(bulkFacultyEmail) ? null : bulkFacultyEmail,
+ TermId = bulkTermId,
+ CourseId = bulkCourseId,
+ ProgramOfStudyId = bulkProgramId,
+ WorkloadCategoryId = bulkCategoryId,
+ Workload = bulkWorkload,
+ HoursAssigned = bulkHours,
+ IsPrimaryInstructor = bulkIsPrimary,
+ PercentShareHasValue = percentShareMode != PercentMode.None,
+ PercentShare = percentShareMode == PercentMode.Clear ? null : percentShareMode == PercentMode.Set ? percentShareValue : null,
+ Notes = string.IsNullOrWhiteSpace(bulkNotes) ? null : bulkNotes
+ };
+ var changed = await WorkloadService.BulkUpdateAsync(req);
+ Snackbar.Add($"Updated {changed} item(s).", MudBlazor.Severity.Success);
+ await LoadData();
+ }
+ catch (Exception ex)
+ {
+ Snackbar.Add($"Bulk update failed: {ex.Message}", MudBlazor.Severity.Error);
+ }
+ }
+
+ private async Task OnCsvSelected(InputFileChangeEventArgs e)
+ {
+ importFile = e.File;
+ if (importFile == null) return;
+ try
+ {
+ using var stream = importFile.OpenReadStream(long.MaxValue);
+ using var reader = new StreamReader(stream);
+ var content = await reader.ReadToEndAsync();
+ var res = await WorkloadService.ImportFromCsvAsync(importTermId, content);
+ lastImportMessage = $"Imported: {res.Imported}, Skipped: {res.Skipped}, Errors: {res.Errors.Count}";
+ lastImportErrors = res.Errors;
+ Snackbar.Add(lastImportMessage, MudBlazor.Severity.Success);
+ await LoadData();
+ }
+ catch (Exception ex)
+ {
+ lastImportMessage = $"Import failed: {ex.Message}";
+ lastImportErrors = new List<string>();
+ Snackbar.Add(lastImportMessage, MudBlazor.Severity.Error);
+ }
+ }
+
+ private Color GetWorkloadColor(decimal hours)
+ {
+ if (hours >=40) return Color.Error;
+ if (hours >=25) return Color.Warning;
+ if (hours >=10) return Color.Info;
+ return Color.Success;
+ }
 }

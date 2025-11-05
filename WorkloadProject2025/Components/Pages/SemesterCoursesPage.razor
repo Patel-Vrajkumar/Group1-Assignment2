@@ -4,273 +4,312 @@
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext _context
 @inject CourseService courseService
+@inject ISnackbar Snackbar
 
 <PageTitle>Create Semester Courses</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
-        Create Semester Courses for Program
-    </MudText>
+ <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+ <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
+ Create Semester Courses for Program
+ </MudText>
 
-    <MudCard Class="mb-4">
-        <MudCardHeader>
-            <MudText Typo="Typo.h6">Select Program and Term</MudText>
-        </MudCardHeader>
-        <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="int?" 
-                               Label="Select Program" 
-                               @bind-Value="selectedProgramId"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@((int?)null)">-- Select a Program --</MudSelectItem>
-                        @foreach (var program in programs)
-                        {
-                            <MudSelectItem Value="@((int?)program.Id)">@program.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="int?" 
-                               Label="Select Term/Semester" 
-                               @bind-Value="selectedTermId"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@((int?)null)">-- Select a Term --</MudSelectItem>
-                        @foreach (var term in terms)
-                        {
-                            <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.StartDate?.ToString("MMM yyyy") - @term.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-            </MudGrid>
-        </MudCardContent>
-    </MudCard>
+ <MudCard Class="mb-4">
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Select Program and Term</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudGrid>
+ <MudItem xs="12" md="6">
+ <MudSelect T="int?" 
+ Label="Select Program" 
+ @bind-Value="selectedProgramId"
+ Variant="Variant.Outlined"
+ Required="true"
+ AnchorOrigin="Origin.BottomCenter">
+ <MudSelectItem Value="@((int?)null)">-- Select a Program --</MudSelectItem>
+ @foreach (var program in programs)
+ {
+ <MudSelectItem Value="@((int?)program.Id)">@program.Name</MudSelectItem>
+ }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="6">
+ <MudSelect T="int?" 
+ Label="Select Term/Semester" 
+ @bind-Value="selectedTermId"
+ Variant="Variant.Outlined"
+ Required="true"
+ AnchorOrigin="Origin.BottomCenter">
+ <MudSelectItem Value="@((int?)null)">-- Select a Term --</MudSelectItem>
+ @foreach (var term in terms)
+ {
+ <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.StartDate?.ToString("MMM yyyy") - @term.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
+ }
+ </MudSelect>
+ </MudItem>
+ </MudGrid>
+ </MudCardContent>
+ </MudCard>
 
-    @if (selectedProgramId.HasValue && selectedTermId.HasValue)
-    {
-        <MudCard Class="mb-4">
-            <MudCardHeader>
-                <MudText Typo="Typo.h6">Add Courses</MudText>
-            </MudCardHeader>
-            <MudCardContent>
-                <MudStack Spacing="3">
-                    @foreach (var course in coursesToCreate)
-                    {
-                        <MudPaper Class="pa-4" Elevation="2">
-                            <MudGrid>
-                                <MudItem xs="12" md="8">
-                                    <MudTextField @bind-Value="course.Name"
-                                                  Label="Course Name"
-                                                  Required="true"
-                                                  Variant="Variant.Outlined"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Filled.Book">
-                                    </MudTextField>
-                                </MudItem>
-                                <MudItem xs="9" md="3">
-                                    <MudNumericField @bind-Value="course.Hours"
-                                                     Label="Hours"
-                                                     Required="true"
-                                                     Variant="Variant.Outlined"
-                                                     Min="0"
-                                                     Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Filled.Timer">
-                                    </MudNumericField>
-                                </MudItem>
-                                <MudItem xs="3" md="1" Class="d-flex align-center">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                   Color="Color.Error" 
-                                                   OnClick="@(() => RemoveCourse(course))"
-                                                   aria-label="delete">
-                                    </MudIconButton>
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
-                    }
-                </MudStack>
+ @if (selectedProgramId.HasValue && selectedTermId.HasValue)
+ {
+ <MudCard Class="mb-4">
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Add Courses</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudStack Spacing="3">
+ @foreach (var course in coursesToCreate)
+ {
+ <MudPaper Class="pa-4" Elevation="2">
+ <MudGrid>
+ <MudItem xs="12" md="5">
+ <MudTextField @bind-Value="course.Name"
+ Label="Course Name"
+ Required="true"
+ Variant="Variant.Outlined"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Book">
+ </MudTextField>
+ </MudItem>
+ <MudItem xs="6" md="2">
+ <MudNumericField @bind-Value="course.Hours"
+ Label="Hours"
+ Required="true"
+ Variant="Variant.Outlined"
+ Min="0"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Timer">
+ </MudNumericField>
+ </MudItem>
+ <MudItem xs="6" md="2">
+ <MudNumericField T="int?" @bind-Value="course.Enrollment"
+ Label="Enrollment"
+ Variant="Variant.Outlined"
+ Min="0"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Group">
+ </MudNumericField>
+ </MudItem>
+ <MudItem xs="6" md="3">
+ <MudTextField @bind-Value="course.Room" Label="Room" Variant="Variant.Outlined" />
+ </MudItem>
+ <MudItem xs="12" md="4">
+ <MudTextField @bind-Value="course.MeetingDays" Label="Meeting Days" Variant="Variant.Outlined" Placeholder="e.g., Mon/Wed" />
+ </MudItem>
+ <MudItem xs="6" md="2">
+ <MudTimePicker @bind-Time="course.StartTime" Label="Start Time" />
+ </MudItem>
+ <MudItem xs="6" md="2">
+ <MudTimePicker @bind-Time="course.EndTime" Label="End Time" />
+ </MudItem>
+ <MudItem xs="12" md="4">
+ <MudTextField @bind-Value="course.BlockSlot" Label="Block Slot" Variant="Variant.Outlined" Placeholder="e.g., Block A" />
+ </MudItem>
+ <MudItem xs="12" md="12">
+ <MudText Typo="Typo.caption" Color="Color.Secondary">Term: @terms.First(t => t.Id == selectedTermId).IntakeName</MudText>
+ </MudItem>
+ <MudItem xs="12" md="12" Class="d-flex justify-end">
+ <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+ Color="Color.Error" 
+ OnClick="@(() => RemoveCourse(course))"
+ aria-label="delete">
+ </MudIconButton>
+ </MudItem>
+ </MudGrid>
+ </MudPaper>
+ }
+ </MudStack>
 
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="AddCourseRow"
-                           Class="mt-4">
-                    Add Another Course
-                </MudButton>
-            </MudCardContent>
-            <MudCardActions>
-                <MudSpacer />
-                <MudButton Variant="Variant.Text" 
-                           Color="Color.Secondary" 
-                           OnClick="ClearAll">
-                    Clear All
-                </MudButton>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           OnClick="SaveAllCourses"
-                           Disabled="@(!coursesToCreate.Any() || coursesToCreate.Any(c => string.IsNullOrWhiteSpace(c.Name)))">
-                    Save All Courses
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
+ <MudButton Variant="Variant.Outlined" 
+ Color="Color.Primary" 
+ StartIcon="@Icons.Material.Filled.Add"
+ OnClick="AddCourseRow"
+ Class="mt-4">
+ Add Another Course
+ </MudButton>
+ </MudCardContent>
+ <MudCardActions>
+ <MudSpacer />
+ <MudButton Variant="Variant.Text" 
+ Color="Color.Secondary" 
+ OnClick="ClearAll">
+ Clear All
+ </MudButton>
+ <MudButton Variant="Variant.Filled" 
+ Color="Color.Primary" 
+ OnClick="SaveAllCourses"
+ Disabled="@(!coursesToCreate.Any() || coursesToCreate.Any(c => string.IsNullOrWhiteSpace(c.Name)))">
+ Save All Courses
+ </MudButton>
+ </MudCardActions>
+ </MudCard>
 
-        @if (existingCourses.Any())
-        {
-            <MudCard>
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Existing Courses in @GetSelectedProgramName()</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudTable Items="@existingCourses" Hover="true" Dense="true">
-                        <HeaderContent>
-                            <MudTh>Course Name</MudTh>
-                            <MudTh>Hours</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Name">@context.Name</MudTd>
-                            <MudTd DataLabel="Hours">@context.Hours</MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                </MudCardContent>
-            </MudCard>
-        }
-    }
-    else
-    {
-        <MudAlert Severity="Severity.Info" Class="mt-4">
-            Please select both a Program and a Term to begin adding courses.
-        </MudAlert>
-    }
+ @if (existingCourses.Any())
+ {
+ <MudCard>
+ <MudCardHeader>
+ <MudText Typo="Typo.h6">Existing Courses in @GetSelectedProgramName()</MudText>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudTable Items="@existingCourses" Hover="true" Dense="true">
+ <HeaderContent>
+ <MudTh>Course Name</MudTh>
+ <MudTh>Hours</MudTh>
+ <MudTh>Enroll</MudTh>
+ <MudTh>Meeting</MudTh>
+ <MudTh>Time</MudTh>
+ <MudTh>Block</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="Name">@context.Name</MudTd>
+ <MudTd DataLabel="Hours">@context.Hours</MudTd>
+ <MudTd DataLabel="Enroll">@context.Enrollment</MudTd>
+ <MudTd DataLabel="Meeting">@context.MeetingDays</MudTd>
+ <MudTd DataLabel="Time">@((context.StartTime.HasValue && context.EndTime.HasValue) ? $"{context.StartTime.Value:hh\\:mm} - {context.EndTime.Value:hh\\:mm}" : "")</MudTd>
+ <MudTd DataLabel="Block">@context.BlockSlot</MudTd>
+ </RowTemplate>
+ </MudTable>
+ </MudCardContent>
+ </MudCard>
+ }
+ }
+ else
+ {
+ <MudAlert Severity="Severity.Info" Class="mt-4">
+ Please select both a Program and a Term to begin adding courses.
+ </MudAlert>
+ }
 </MudContainer>
 
 @code {
-    private List<ProgramOfStudy> programs = new();
-    private List<Term> terms = new();
-    private List<Course> existingCourses = new();
-    private List<Course> coursesToCreate = new();
-    
-    private int? selectedProgramId = null;
-    private int? selectedTermId = null;
+ private List<ProgramOfStudy> programs = new();
+ private List<Term> terms = new();
+ private List<Course> existingCourses = new();
+ private List<Course> coursesToCreate = new();
+ 
+ private int? selectedProgramId = null;
+ private int? selectedTermId = null;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
+ protected override async Task OnInitializedAsync()
+ {
+ await LoadData();
+ }
 
-    private async Task LoadData()
-    {
-        // Load all programs and terms
-        programs = await _context.ProgramsOfStudy
-            .Include(p => p.Department)
-            .Include(p => p.Courses)
-            .ToListAsync();
-        
-        terms = await _context.Terms
-            .OrderByDescending(t => t.StartDate)
-            .ToListAsync();
+ private async Task LoadData()
+ {
+ // Load all programs and terms
+ programs = await _context.ProgramsOfStudy
+ .Include(p => p.Department)
+ .Include(p => p.Courses)
+ .ToListAsync();
+ 
+ terms = await _context.Terms
+ .OrderByDescending(t => t.StartDate)
+ .ToListAsync();
 
-        // Initialize with one empty course row
-        if (!coursesToCreate.Any())
-        {
-            AddCourseRow();
-        }
-    }
+ // Initialize with one empty course row
+ if (!coursesToCreate.Any())
+ {
+ AddCourseRow();
+ }
+ }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (selectedProgramId.HasValue)
-        {
-            await LoadExistingCourses();
-        }
-    }
+ protected override async Task OnParametersSetAsync()
+ {
+ if (selectedProgramId.HasValue)
+ {
+ await LoadExistingCourses();
+ }
+ }
 
-    private async Task LoadExistingCourses()
-    {
-        if (selectedProgramId.HasValue)
-        {
-            existingCourses = await _context.Courses
-                .Where(c => c.ProgramOfStudyId == selectedProgramId.Value)
-                .ToListAsync();
-        }
-        else
-        {
-            existingCourses.Clear();
-        }
-    }
+ private async Task LoadExistingCourses()
+ {
+ if (selectedProgramId.HasValue)
+ {
+ existingCourses = await _context.Courses
+ .Where(c => c.ProgramOfStudyId == selectedProgramId.Value)
+ .ToListAsync();
+ }
+ else
+ {
+ existingCourses.Clear();
+ }
+ }
 
-    private void AddCourseRow()
-    {
-        if (selectedProgramId.HasValue)
-        {
-            coursesToCreate.Add(new Course 
-            { 
-                ProgramOfStudyId = selectedProgramId.Value,
-                Name = "",
-                Hours = 3
-            });
-        }
-    }
+ private void AddCourseRow()
+ {
+ if (selectedProgramId.HasValue && selectedTermId.HasValue)
+ {
+ coursesToCreate.Add(new Course 
+ { 
+ ProgramOfStudyId = selectedProgramId.Value,
+ TermId = selectedTermId.Value,
+ Name = "",
+ Hours =3
+ });
+ }
+ }
 
-    private void RemoveCourse(Course course)
-    {
-        coursesToCreate.Remove(course);
-    }
+ private void RemoveCourse(Course course)
+ {
+ coursesToCreate.Remove(course);
+ }
 
-    private async Task SaveAllCourses()
-    {
-        if (!selectedProgramId.HasValue || !coursesToCreate.Any())
-        {
-            return;
-        }
+ private async Task SaveAllCourses()
+ {
+ if (!selectedProgramId.HasValue || !selectedTermId.HasValue || !coursesToCreate.Any())
+ {
+ return;
+ }
 
-        try
-        {
-            // Validate all courses have names
-            var invalidCourses = coursesToCreate.Where(c => string.IsNullOrWhiteSpace(c.Name)).ToList();
-            if (invalidCourses.Any())
-            {
-                // Show error message
-                return;
-            }
+ try
+ {
+ // Validate all courses have names
+ var invalidCourses = coursesToCreate.Where(c => string.IsNullOrWhiteSpace(c.Name)).ToList();
+ if (invalidCourses.Any())
+ {
+ Snackbar.Add("All courses must have names.", Severity.Warning);
+ return;
+ }
 
-            // Ensure all courses have the correct program ID
-            foreach (var course in coursesToCreate)
-            {
-                course.ProgramOfStudyId = selectedProgramId.Value;
-            }
+ // Ensure all courses have the correct program and term
+ foreach (var course in coursesToCreate)
+ {
+ course.ProgramOfStudyId = selectedProgramId.Value;
+ course.TermId = selectedTermId.Value;
+ }
 
-            // Save all courses
-            _context.Courses.AddRange(coursesToCreate);
-            await _context.SaveChangesAsync();
+ // Save all courses
+ _context.Courses.AddRange(coursesToCreate);
+ await _context.SaveChangesAsync();
 
-            // Reload existing courses
-            await LoadExistingCourses();
+ // Reload existing courses
+ await LoadExistingCourses();
 
-            // Clear the form
-            coursesToCreate.Clear();
-            AddCourseRow();
+ // Clear the form
+ coursesToCreate.Clear();
+ AddCourseRow();
 
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving courses: {ex.Message}");
-        }
-    }
+ Snackbar.Add("Courses saved.", Severity.Success);
+ StateHasChanged();
+ }
+ catch (Exception ex)
+ {
+ Snackbar.Add($"Error saving courses: {ex.Message}", Severity.Error);
+ }
+ }
 
-    private void ClearAll()
-    {
-        coursesToCreate.Clear();
-        AddCourseRow();
-    }
+ private void ClearAll()
+ {
+ coursesToCreate.Clear();
+ AddCourseRow();
+ }
 
-    private string GetSelectedProgramName()
-    {
-        var program = programs.FirstOrDefault(p => p.Id == selectedProgramId);
-        return program?.Name ?? "Selected Program";
-    }
+ private string GetSelectedProgramName()
+ {
+ var program = programs.FirstOrDefault(p => p.Id == selectedProgramId);
+ return program?.Name ?? "Selected Program";
+ }
 }

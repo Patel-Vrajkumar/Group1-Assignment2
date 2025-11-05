@@ -15,5 +15,10 @@ namespace WorkloadProject2025.Data.Models
         // Nullable EndDate then we know it is the current one
         public DateTime? EndDate { get; set; }
 
+        // Employment category whose rules this applies to (optional)
+        public EmploymentCategory? AppliesToEmploymentCategory { get; set; }
+
+        // Human-friendly label for UI dropdowns
+        public string? Name { get; set; }
     }
 }

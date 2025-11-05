@@ -2,15 +2,11 @@
 @using WorkloadProject2025.Data
 @using WorkloadProject2025.Data.Models
 @using MudBlazor
+@using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext _context
 @inject ISnackbar Snackbar
-@inject FacultyService FacultyService
-@inject CourseService CourseService
-@inject ProgramsOfStudyService ProgramsService
-@inject TermService TermService
-@inject IWorkloadCategoriesService WorkloadCategoriesService
 
-<MudCard Class="mx-auto mt-6" Style="max-width:750px;" Elevation="4">
+<MudCard Class="mx-auto mt-6" Style="max-width:900px;" Elevation="4">
  <MudCardHeader Style="background: linear-gradient(135deg, #667eea0%, #764ba2100%); margin: -16px -16px16px -16px; padding:24px; border-radius:4px4px00;">
  <CardHeaderContent>
  <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -24,49 +20,49 @@
  </MudCardHeader>
 
  <MudCardContent>
- @if (isLoading)
- {
- <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-6">
- <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
- <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Loading form data…</MudText>
- </MudStack>
- }
- else
- {
  <MudGrid Spacing="3">
- <MudItem xs="12">
- <MudAutocomplete T="Faculty"
- Label="Faculty"
- @bind-Value="SelectedFaculty"
- ToStringFunc="@(f => f == null ? string.Empty : $"{f.LastName}, {f.FirstName} ({f.Email})")"
- Dense="true"
- Clearable="true"
- CoerceText="true"
- ResetValueOnEmptyText="true"
- SearchFunc="SearchFaculty"
- DebounceInterval="300"
- Virtualize="true"
- MaxItems="50"
- NoItemsMessage="No faculty found"
+ <MudItem xs="12" sm="6">
+ <MudSelect Label="Faculty"
+ T="string"
+ @bind-Value="facultyWorkLoad.FacultyEmail"
  Variant="Variant.Outlined"
  Required="true"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.Person"
- AdornmentColor="Color.Primary"
- HelperText="Search and select a faculty member" />
+ AdornmentColor="Color.Primary">
+ @foreach (var f in facultyOptions)
+ {
+ <MudSelectItem Value="@f.Email">@f.FirstName @f.LastName (@f.EmploymentCategory)</MudSelectItem>
+ }
+ </MudSelect>
  </MudItem>
 
  <MudItem xs="12" sm="6">
- <MudSelect T="int?"
- Label="Program of Study"
- @bind-Value="SelectedProgramId"
+ <MudSelect Label="Term"
+ T="int"
+ @bind-Value="facultyWorkLoad.TermId"
  Variant="Variant.Outlined"
  Required="true"
  Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.DateRange"
+ AdornmentColor="Color.Primary">
+ @foreach (var t in termOptions)
+ {
+ <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem>
+ }
+ </MudSelect>
+ </MudItem>
+
+ <MudItem xs="12" sm="6">
+ <MudSelect Label="Program of Study"
+ T="int?"
+ @bind-Value="facultyWorkLoad.ProgramOfStudyId"
+ Variant="Variant.Outlined"
+ Clearable="true"
+ Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.School"
- AdornmentColor="Color.Primary"
- HelperText="Select a program to filter courses">
- @foreach (var p in programs)
+ AdornmentColor="Color.Primary">
+ @foreach (var p in programOptions)
  {
  <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
  }
@@ -74,64 +70,19 @@
  </MudItem>
 
  <MudItem xs="12" sm="6">
- <MudSelect T="int?"
- Label="Course"
+ <MudSelect Label="Course"
+ T="int?"
  @bind-Value="facultyWorkLoad.CourseId"
  Variant="Variant.Outlined"
- Required="true"
- Disabled="@(!SelectedProgramId.HasValue)"
+ Clearable="true"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.MenuBook"
- AdornmentColor="Color.Primary"
- HelperText="Select a course from the selected program">
- @foreach (var c in filteredCourses)
+ AdornmentColor="Color.Primary">
+ @foreach (var c in courseOptions)
  {
- <MudSelectItem Value="@c.Id">@c.Name (@c.Hours hrs)</MudSelectItem>
+ <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
  }
  </MudSelect>
- @if (SelectedProgramId.HasValue && !filteredCourses.Any())
- {
- <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1">No courses available for the selected program.</MudText>
- }
- </MudItem>
-
- <MudItem xs="12" sm="6">
- <MudSelect T="int"
- Label="Term"
- @bind-Value="facultyWorkLoad.TermId"
- Variant="Variant.Outlined"
- Required="true"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Event"
- AdornmentColor="Color.Primary"
- HelperText="Select the term">
- @foreach (var t in terms)
- {
- var label = $"{t.IntakeName} ({t.StartDate?.ToString("MMM yyyy") ?? "?"} - {t.EndDate?.ToString("MMM yyyy") ?? "?"})" + (currentTermId.HasValue && currentTermId.Value == t.Id ? " • Current" : string.Empty);
- <MudSelectItem Value="@t.Id">@label</MudSelectItem>
- }
- </MudSelect>
- </MudItem>
-
- <MudItem xs="12" sm="6">
- <MudSelect T="int?"
- Label="Workload Category"
- @bind-Value="SelectedCategoryId"
- Variant="Variant.Outlined"
- Required="true"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Category"
- AdornmentColor="Color.Primary"
- HelperText="Select a workload category">
- @foreach (var cat in categories)
- {
- <MudSelectItem Value="@cat.Id">Min @cat.MiniumHours, Max @cat.MaximumHours</MudSelectItem>
- }
- </MudSelect>
- @if (showCategoryAutoFillMessage)
- {
- <MudText Typo="Typo.caption" Color="Color.Info">Auto-filled hours from category minimum. You can override.</MudText>
- }
  </MudItem>
 
  <MudItem xs="12" sm="6">
@@ -141,58 +92,70 @@
  Variant="Variant.Outlined"
  Required="true"
  Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Badge"
- AdornmentColor="Color.Primary"
- HelperText="Select the type of workload">
- <MudList T="Workload">
- <MudListSubheader Dense="true">Teaching</MudListSubheader>
- @foreach (var t in new[]{Workload.Course_Lecture, Workload.Course_Lab})
+ AdornmentIcon="@Icons.Material.Filled.Category"
+ AdornmentColor="Color.Primary">
+ @foreach (Workload type in Enum.GetValues(typeof(Workload)))
  {
- <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
+ <MudSelectItem Value="@type">@type.ToString().Replace("_", " ")</MudSelectItem>
  }
- <MudListSubheader Dense="true">Release / Non-Teaching</MudListSubheader>
- @foreach (var t in new[]{Workload.Coordinator_Release, Workload.Research_Release, Workload.Chair_Release, Workload.Sabbatical, Workload.Professional_Development})
- {
- <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
- }
- <MudListSubheader Dense="true">Administrative / Other</MudListSubheader>
- @foreach (var t in new[]{Workload.Admin_Duties, Workload.Committee_Work, Workload.Sick_Leave, Workload.Special_Assignment, Workload.Other})
- {
- <MudSelectItem Value="@t">@t.ToString().Replace("_"," ")</MudSelectItem>
- }
- </MudList>
  </MudSelect>
  </MudItem>
 
  <MudItem xs="12" sm="6">
  <MudNumericField T="decimal"
  Label="Hours Assigned"
- Value="@facultyWorkLoad.HoursAssigned"
- ValueChanged="OnHoursValueChanged"
+ @bind-Value="facultyWorkLoad.HoursAssigned"
  Variant="Variant.Outlined"
  Required="true"
- Min="@(hoursMin ??0)"
- Max="@(hoursMax ??168)"
- Immediate="true"
+ Min="0"
+ Max="168"
  Adornment="Adornment.End"
  AdornmentIcon="@Icons.Material.Filled.Timer"
- AdornmentColor="Color.Primary"
- HelperText="Number of hours for this assignment" />
- @if (!string.IsNullOrWhiteSpace(hoursValidationMessage))
+ AdornmentColor="Color.Primary" />
+ </MudItem>
+
+ <MudItem xs="12" sm="6">
+ <MudSelect Label="Workload Category"
+ T="int?"
+ @bind-Value="facultyWorkLoad.WorkloadCategoryId"
+ Variant="Variant.Outlined"
+ Clearable="true"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Folder"
+ AdornmentColor="Color.Primary">
+ @foreach (var cat in categoryOptions)
  {
- <MudAlert Severity="@hoursValidationSeverity" Dense="true" Class="mt-1">@hoursValidationMessage</MudAlert>
+ <MudSelectItem Value="@cat.Id">@cat.Name (@cat.MiniumHours-@cat.MaximumHours)</MudSelectItem>
  }
+ </MudSelect>
+ </MudItem>
+
+ <MudItem xs="12" sm="6">
+ <MudSwitch T="bool" @bind-Checked="facultyWorkLoad.IsPrimaryInstructor" Color="Color.Info" Label="Primary Instructor" />
+ </MudItem>
+
+ <MudItem xs="12" sm="6">
+ <MudNumericField T="decimal?" Label="Percent Share" @bind-Value="facultyWorkLoad.PercentShare" Min="0" Max="100" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="%" />
  </MudItem>
 
  <MudItem xs="12">
  <MudTextField Label="Description"
  @bind-Value="facultyWorkLoad.Description"
  Variant="Variant.Outlined"
- Lines="3"
+ Lines="2"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.Description"
- AdornmentColor="Color.Primary"
- HelperText="Optional: Add details about this workload assignment" />
+ AdornmentColor="Color.Primary" />
+ </MudItem>
+
+ <MudItem xs="12">
+ <MudTextField Label="Notes"
+ @bind-Value="facultyWorkLoad.Notes"
+ Variant="Variant.Outlined"
+ Lines="3"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Notes"
+ AdornmentColor="Color.Primary" />
  </MudItem>
 
  <MudItem xs="12" sm="6">
@@ -201,11 +164,53 @@
  Variant="Variant.Outlined"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.CalendarToday"
- AdornmentColor="Color.Primary"
- HelperText="When this workload was assigned" />
+ AdornmentColor="Color.Primary" />
  </MudItem>
- </MudGrid>
+
+ <MudItem xs="12" sm="6">
+ <MudSwitch T="bool" @bind-Checked="facultyWorkLoad.IsCoverage" Color="Color.Warning" Label="Coverage (covering another instructor)" />
+ </MudItem>
+
+ @if (facultyWorkLoad.IsCoverage)
+ {
+ <MudItem xs="12" sm="6">
+ <MudTextField Label="Covered For (Instructor Email)"
+ @bind-Value="facultyWorkLoad.CoveredForFacultyEmail"
+ Variant="Variant.Outlined"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.Email"
+ AdornmentColor="Color.Warning" />
+ </MudItem>
  }
+
+ <MudItem xs="12">
+ <MudDivider Class="my-2" />
+ <MudText Typo="Typo.subtitle2" Color="Color.Secondary">HR Processing</MudText>
+ </MudItem>
+
+ <MudItem xs="12" sm="4">
+ <MudSwitch T="bool" @bind-Checked="facultyWorkLoad.HRProcessed" Color="Color.Success" Label="HR Processed" />
+ </MudItem>
+ <MudItem xs="12" sm="4">
+ <MudDatePicker Label="HR Processed Date"
+ @bind-Date="facultyWorkLoad.HRProcessedDate"
+ Disabled="@(!facultyWorkLoad.HRProcessed)"
+ Variant="Variant.Outlined"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.EventAvailable"
+ AdornmentColor="Color.Success" />
+ </MudItem>
+ <MudItem xs="12" sm="4">
+ <MudTextField Label="HR Notes"
+ @bind-Value="facultyWorkLoad.HRNotes"
+ Variant="Variant.Outlined"
+ Lines="2"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Filled.StickyNote2"
+ AdornmentColor="Color.Success" />
+ </MudItem>
+
+ </MudGrid>
  </MudCardContent>
 
  <MudCardActions Class="d-flex justify-end pa-4" Style="background-color: #f5f5f5; margin:16px -16px -16px -16px; border-radius:004px4px;">
@@ -213,14 +218,13 @@
  Color="Color.Secondary" 
  StartIcon="@Icons.Material.Filled.Close"
  Class="mr-2"
- Disabled="@isLoading"
  OnClick="Cancel">
  Cancel
  </MudButton>
  <MudButton Color="Color.Primary" 
  Variant="Variant.Filled" 
  StartIcon="@Icons.Material.Filled.Save"
- Disabled="@IsSaveDisabled"
+ Disabled="@(!IsFormValid())"
  OnClick="Save">
  Save Workload
  </MudButton>
@@ -235,175 +239,23 @@
  DateAssigned = DateTime.Now
  };
 
- private List<Faculty> faculties = new();
- private List<ProgramOfStudy> programs = new();
- private List<Course> courses = new();
- private List<Course> filteredCourses = new();
- private List<Term> terms = new();
- private List<WorkloadCategory> categories = new();
-
- private Faculty? selectedFaculty;
- private Faculty? SelectedFaculty
- {
- get => selectedFaculty;
- set
- {
- selectedFaculty = value;
- OnFacultyChanged(value);
- }
- }
-
- private int? selectedProgramId;
- private int? SelectedProgramId
- {
- get => selectedProgramId;
- set
- {
- selectedProgramId = value;
- OnProgramChanged(value);
- }
- }
-
- private int? selectedCategoryId;
- private int? SelectedCategoryId
- {
- get => selectedCategoryId;
- set
- {
- selectedCategoryId = value;
- OnCategoryChanged(value);
- }
- }
-
- private bool showCategoryAutoFillMessage;
- private bool isLoading = true;
- private int? currentTermId;
- private decimal? hoursMin;
- private decimal? hoursMax;
- private string? hoursValidationMessage;
- private Severity hoursValidationSeverity = Severity.Info;
- private bool IsSaveDisabled => isLoading || !IsFormValid();
+ private List<Faculty> facultyOptions = new();
+ private List<Term> termOptions = new();
+ private List<Course> courseOptions = new();
+ private List<ProgramOfStudy> programOptions = new();
+ private List<WorkloadCategory> categoryOptions = new();
 
  protected override async Task OnInitializedAsync()
  {
- try
- {
- faculties = await FacultyService.GetAllAsync();
- programs = await ProgramsService.GetAllAsync();
- courses = await CourseService.GetAllAsync();
- categories = await WorkloadCategoriesService.GetAllAsync();
- terms = (await TermService.GetAllAsync())
- .OrderByDescending(t => t.StartDate)
- .ToList();
-
- var today = DateTime.Today;
- var current = terms.FirstOrDefault(t => (!t.StartDate.HasValue || t.StartDate.Value.Date <= today)
- && (!t.EndDate.HasValue || today <= t.EndDate.Value.Date));
- if (current == null)
- {
- current = terms.FirstOrDefault(t => t.StartDate.HasValue && t.StartDate.Value.Date >= today)
- ?? terms.FirstOrDefault();
- }
- if (current != null)
- {
- currentTermId = current.Id;
- facultyWorkLoad.TermId = current.Id;
- }
- }
- finally
- {
- isLoading = false;
- }
- }
-
- private Task<IEnumerable<Faculty>> SearchFaculty(string value, CancellationToken token)
- {
- IEnumerable<Faculty> results;
- if (string.IsNullOrWhiteSpace(value))
- results = faculties.Take(50);
- else
- {
- value = value.Trim().ToLowerInvariant();
- results = faculties.Where(f =>
- (!string.IsNullOrEmpty(f.FirstName) && f.FirstName.ToLower().Contains(value)) ||
- (!string.IsNullOrEmpty(f.LastName) && f.LastName.ToLower().Contains(value)) ||
- (!string.IsNullOrEmpty(f.Email) && f.Email.ToLower().Contains(value))
- ).Take(50);
- }
- return Task.FromResult(results);
- }
-
- private void OnFacultyChanged(Faculty? f)
- {
- facultyWorkLoad.FacultyEmail = f?.Email ?? string.Empty;
- }
-
- private void OnProgramChanged(int? programId)
- {
- facultyWorkLoad.CourseId = null;
- filteredCourses = programId.HasValue
- ? courses.Where(c => c.ProgramOfStudyId == programId.Value).ToList()
- : new List<Course>();
- }
-
- private void OnCategoryChanged(int? categoryId)
- {
- facultyWorkLoad.WorkloadCategoryId = categoryId;
- showCategoryAutoFillMessage = false;
- var cat = categories.FirstOrDefault(c => c.Id == categoryId);
- if (cat != null)
- {
- hoursMin = cat.MiniumHours;
- hoursMax = cat.MaximumHours;
- if (facultyWorkLoad.HoursAssigned <=0)
- {
- facultyWorkLoad.HoursAssigned = cat.MiniumHours;
- showCategoryAutoFillMessage = true;
- }
- }
- else
- {
- hoursMin = null;
- hoursMax = null;
- }
- ValidateHours();
- }
-
- private void OnHoursValueChanged(decimal value)
- {
- facultyWorkLoad.HoursAssigned = value;
- ValidateHours();
- }
-
- private void ValidateHours()
- {
- hoursValidationMessage = null;
- hoursValidationSeverity = Severity.Info;
- if (SelectedCategoryId.HasValue && hoursMin.HasValue && hoursMax.HasValue)
- {
- if (facultyWorkLoad.HoursAssigned < hoursMin.Value)
- {
- hoursValidationMessage = $"Below minimum for category: {hoursMin.Value} hrs.";
- hoursValidationSeverity = Severity.Warning;
- }
- else if (facultyWorkLoad.HoursAssigned > hoursMax.Value)
- {
- hoursValidationMessage = $"Exceeds maximum for category: {hoursMax.Value} hrs.";
- hoursValidationSeverity = Severity.Error;
- }
- }
+ facultyOptions = await _context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
+ termOptions = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ programOptions = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courseOptions = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
+ categoryOptions = await _context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
  }
 
  private void Cancel()
  {
- SelectedFaculty = null;
- SelectedProgramId = null;
- SelectedCategoryId = null;
- filteredCourses = new();
- showCategoryAutoFillMessage = false;
- hoursMin = null;
- hoursMax = null;
- hoursValidationMessage = null;
  facultyWorkLoad = new FacultyWorkLoad { DateAssigned = DateTime.Now };
  }
 
@@ -411,7 +263,7 @@
  {
  if (string.IsNullOrWhiteSpace(email))
  return false;
-
+ 
  try
  {
  var addr = new System.Net.Mail.MailAddress(email);
@@ -425,13 +277,15 @@
 
  private bool IsFormValid()
  {
- return !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
+ var valid = !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
  IsValidEmail(facultyWorkLoad.FacultyEmail) &&
- SelectedProgramId.HasValue &&
- facultyWorkLoad.CourseId.HasValue &&
  facultyWorkLoad.TermId >0 &&
- SelectedCategoryId.HasValue &&
  facultyWorkLoad.HoursAssigned >0;
+ if (facultyWorkLoad.IsCoverage && !string.IsNullOrWhiteSpace(facultyWorkLoad.CoveredForFacultyEmail))
+ {
+ valid = valid && IsValidEmail(facultyWorkLoad.CoveredForFacultyEmail);
+ }
+ return valid;
  }
 
  private async Task Save()
@@ -444,6 +298,10 @@
 
  try
  {
+ if (facultyWorkLoad.HRProcessed && facultyWorkLoad.HRProcessedDate == null)
+ {
+ facultyWorkLoad.HRProcessedDate = DateTime.Now;
+ }
  _context.FacultyWorkLoads.Add(facultyWorkLoad);
  await _context.SaveChangesAsync();
 

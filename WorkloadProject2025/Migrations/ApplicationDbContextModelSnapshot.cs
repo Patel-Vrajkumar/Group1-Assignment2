@@ -228,8 +228,20 @@ namespace WorkloadProject2025.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BlockSlot")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<int?>("Enrollment")
+                        .HasColumnType("int");
+
                     b.Property<int>("Hours")
                         .HasColumnType("int");
+
+                    b.Property<string>("MeetingDays")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -238,9 +250,20 @@ namespace WorkloadProject2025.Migrations
                     b.Property<int>("ProgramOfStudyId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Room")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<int?>("TermId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProgramOfStudyId");
+
+                    b.HasIndex("TermId");
 
                     b.ToTable("Courses");
                 });
@@ -272,12 +295,21 @@ namespace WorkloadProject2025.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("EmploymentCategory")
+                        .HasColumnType("int");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastName")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
@@ -300,6 +332,9 @@ namespace WorkloadProject2025.Migrations
                     b.Property<int?>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CoveredForFacultyEmail")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("DateAssigned")
                         .HasColumnType("datetime2");
 
@@ -310,9 +345,34 @@ namespace WorkloadProject2025.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("HRNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("HRProcessed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("HRProcessedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("HoursAssigned")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsCoverage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrimaryInstructor")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("PercentShare")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("ProgramOfStudyId")
+                        .HasColumnType("int");
 
                     b.Property<int>("TermId")
                         .HasColumnType("int");
@@ -328,6 +388,8 @@ namespace WorkloadProject2025.Migrations
                     b.HasIndex("CourseId");
 
                     b.HasIndex("FacultyEmail");
+
+                    b.HasIndex("ProgramOfStudyId");
 
                     b.HasIndex("TermId");
 
@@ -406,6 +468,9 @@ namespace WorkloadProject2025.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AppliesToEmploymentCategory")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -414,6 +479,9 @@ namespace WorkloadProject2025.Migrations
 
                     b.Property<int>("MiniumHours")
                         .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
@@ -482,7 +550,13 @@ namespace WorkloadProject2025.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("WorkloadProject2025.Data.Models.Term", "Term")
+                        .WithMany()
+                        .HasForeignKey("TermId");
+
                     b.Navigation("ProgramOfStudy");
+
+                    b.Navigation("Term");
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.Department", b =>
@@ -508,6 +582,10 @@ namespace WorkloadProject2025.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("WorkloadProject2025.Data.Models.ProgramOfStudy", "ProgramOfStudy")
+                        .WithMany()
+                        .HasForeignKey("ProgramOfStudyId");
+
                     b.HasOne("WorkloadProject2025.Data.Models.Term", "Term")
                         .WithMany()
                         .HasForeignKey("TermId")
@@ -521,6 +599,8 @@ namespace WorkloadProject2025.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Faculty");
+
+                    b.Navigation("ProgramOfStudy");
 
                     b.Navigation("Term");
 

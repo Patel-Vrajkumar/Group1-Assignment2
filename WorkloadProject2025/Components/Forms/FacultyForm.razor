@@ -67,30 +67,32 @@
  </MudTextField>
  </MudItem>
  <MudItem xs="12" sm="6">
- <MudSelect T="EmploymentType"
- Label="Employment Type"
+ <MudSelect T="EmploymentCategory"
  @bind-Value="faculty.EmploymentCategory"
+ Label="Employment Category"
  Variant="Variant.Outlined"
- Required="true"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.Badge"
  AdornmentColor="Color.Primary"
- HelperText="Select employment category">
- @foreach (EmploymentType t in Enum.GetValues(typeof(EmploymentType)))
+ Required="true">
+ @foreach (EmploymentCategory cat in Enum.GetValues(typeof(EmploymentCategory)))
  {
- <MudSelectItem Value="@t">@t.ToString()</MudSelectItem>
+ <MudSelectItem Value="@cat">@cat.ToString()</MudSelectItem>
  }
  </MudSelect>
+ </MudItem>
+ <MudItem xs="12" sm="6">
+ <MudSwitch T="bool" @bind-Checked="faculty.IsActive" Color="Color.Primary" Label="Active" />
  </MudItem>
  <MudItem xs="12">
  <MudTextField @bind-Value="faculty.Notes"
  Label="Notes"
  Variant="Variant.Outlined"
- Lines="4"
+ Lines="3"
  Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.NoteAlt"
+ AdornmentIcon="@Icons.Material.Filled.Notes"
  AdornmentColor="Color.Primary"
- HelperText="Optional: sabbaticals, preferences, constraints">
+ HelperText="Optional notes about this instructor">
  </MudTextField>
  </MudItem>
  </MudGrid>
