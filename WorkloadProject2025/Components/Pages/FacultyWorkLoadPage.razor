@@ -3,6 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext _context
+@inject ISnackbar Snackbar
 @using MudBlazor
 
 <PageTitle>Faculty Workload Assignment</PageTitle>
@@ -17,12 +18,20 @@
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Assign and track workload for faculty members</MudText>
                 </div>
             </MudStack>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="LoadData">
-                Refresh
-            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Secondary" 
+                           StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="OpenCopyDialog">
+                    Copy Previous Year
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadData">
+                    Refresh
+                </MudButton>
+            </MudStack>
         </MudStack>
     </MudPaper>
 
@@ -101,6 +110,68 @@
     </MudCard>
 </MudContainer>
 
+<MudDialog @bind-IsVisible="copyDialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Class="mr-1" />
+            Copy Previous Year Workloads
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudAlert Severity="Severity.Info">
+                This will copy all workload assignments from a previous year to a new term.
+            </MudAlert>
+            
+            <MudSelect T="int?"
+                       Label="Source Term (Previous Year)"
+                       @bind-Value="selectedSourceTermId"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                       HelperText="Select the term to copy from">
+                @foreach (var term in availableTerms)
+                {
+                    <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int?"
+                       Label="Target Term (New Year)"
+                       @bind-Value="selectedTargetTermId"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Event"
+                       HelperText="Select the term to copy to">
+                @foreach (var term in availableTerms)
+                {
+                    <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (copyPreviewCount > 0)
+            {
+                <MudAlert Severity="Severity.Success">
+                    <strong>@copyPreviewCount</strong> workload assignment(s) will be copied.
+                </MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCopyDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="PreviewCopy" Color="Color.Info" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Preview">Preview</MudButton>
+        <MudButton OnClick="CopyPreviousYear" 
+                   Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   StartIcon="@Icons.Material.Filled.ContentCopy"
+                   Disabled="@(!selectedSourceTermId.HasValue || !selectedTargetTermId.HasValue || selectedSourceTermId == selectedTargetTermId)">
+            Copy
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 <style>
     .workload-card {
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
@@ -114,10 +185,18 @@
 
 @code {
     private List<FacultyWorkLoad> workloads = new();
+    private List<Term> availableTerms = new();
+    private bool copyDialogOpen = false;
+    private int? selectedSourceTermId;
+    private int? selectedTargetTermId;
+    private int copyPreviewCount = 0;
+    
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        availableTerms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
     }
 
     private async Task LoadData()
@@ -132,5 +211,95 @@
         if (hours >= 25) return Color.Warning;
         if (hours >= 10) return Color.Info;
         return Color.Success;
+    }
+
+    private void OpenCopyDialog()
+    {
+        copyDialogOpen = true;
+        copyPreviewCount = 0;
+    }
+
+    private void CloseCopyDialog()
+    {
+        copyDialogOpen = false;
+        selectedSourceTermId = null;
+        selectedTargetTermId = null;
+        copyPreviewCount = 0;
+    }
+
+    private async Task PreviewCopy()
+    {
+        if (!selectedSourceTermId.HasValue)
+        {
+            Snackbar.Add("Please select a source term", Severity.Warning);
+            return;
+        }
+
+        var sourceWorkloads = await _context.FacultyWorkLoads
+            .Where(w => w.TermId == selectedSourceTermId.Value)
+            .ToListAsync();
+        
+        copyPreviewCount = sourceWorkloads.Count;
+        StateHasChanged();
+    }
+
+    private async Task CopyPreviousYear()
+    {
+        if (!selectedSourceTermId.HasValue || !selectedTargetTermId.HasValue)
+        {
+            Snackbar.Add("Please select both source and target terms", Severity.Warning);
+            return;
+        }
+
+        if (selectedSourceTermId == selectedTargetTermId)
+        {
+            Snackbar.Add("Source and target terms must be different", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var sourceWorkloads = await _context.FacultyWorkLoads
+                .Where(w => w.TermId == selectedSourceTermId.Value)
+                .ToListAsync();
+
+            if (!sourceWorkloads.Any())
+            {
+                Snackbar.Add("No workloads found in the source term", Severity.Warning);
+                return;
+            }
+
+            int copiedCount = 0;
+            foreach (var workload in sourceWorkloads)
+            {
+                var newWorkload = new FacultyWorkLoad
+                {
+                    FacultyEmail = workload.FacultyEmail,
+                    CourseId = workload.CourseId,
+                    TermId = selectedTargetTermId.Value,
+                    WorkloadCategoryId = workload.WorkloadCategoryId,
+                    Workload = workload.Workload,
+                    HoursAssigned = workload.HoursAssigned,
+                    Description = workload.Description,
+                    DateAssigned = DateTime.Now,
+                    Status = WorkloadStatus.Draft,
+                    ClonedFromId = workload.Id,
+                    SourceYear = workload.Term?.Year
+                };
+
+                _context.FacultyWorkLoads.Add(newWorkload);
+                copiedCount++;
+            }
+
+            await _context.SaveChangesAsync();
+            
+            Snackbar.Add($"Successfully copied {copiedCount} workload assignment(s) to the new term!", Severity.Success);
+            CloseCopyDialog();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error copying workloads: {ex.Message}", Severity.Error);
+        }
     }
 }

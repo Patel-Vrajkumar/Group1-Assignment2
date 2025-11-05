@@ -1,192 +1,238 @@
 ﻿@page "/ProgramPage"
+@inject ProgramsOfStudyService programService
+@inject DepartmentService departmentService
+@inject ISnackbar Snackbar
+@using WorkloadProject2025.Data.Models
 @using MudBlazor
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Programs</MudText>
+<PageTitle>Programs of Study</PageTitle>
 
-    <MudGrid>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Programs of Study</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Manage academic programs</MudText>
+                </div>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddDialog">
+                    Add Program
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Secondary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadData">
+                    Refresh
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
 
-        <!-- Original Programs -->
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Computer Science</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 4 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Business Administration</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <!-- Additional 10 Programs -->
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Data Science</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 2 Years</MudText>
-                    <MudText>Level: Postgraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Marketing</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Cyber Security</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 2 Years</MudText>
-                    <MudText>Level: Postgraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Accounting</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Economics</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Physics</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 4 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Chemistry</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 4 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Mathematics</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 4 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Information Technology</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Class="pa-4 mb-2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Environmental Science</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>Duration: 3 Years</MudText>
-                    <MudText>Level: Undergraduate</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary">View</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-
-    </MudGrid>
+    <MudCard Class="mt-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5">Programs List</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total: @programs.Count program(s)</MudText>
+                    </div>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (programs.Any())
+            {
+                <MudGrid Spacing="3">
+                    @foreach (var program in programs.OrderBy(p => p.Name))
+                    {
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="4" Class="program-card" Style="height: 100%;">
+                                <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" Style="color: white;" />
+                                            <div style="flex: 1;">
+                                                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">@program.Name</MudText>
+                                                @if (program.Department != null)
+                                                {
+                                                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" /> @program.Department.Name
+                                                    </MudText>
+                                                }
+                                            </div>
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        @if (program.Department != null)
+                                        {
+                                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                                <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #667eea;">
+                                                    Department: @program.Department.Name
+                                                </MudText>
+                                            </MudPaper>
+                                        }
+                                        
+                                        @if (program.Courses != null && program.Courses.Any())
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: #666;">
+                                                <MudIcon Icon="@Icons.Material.Filled.Book" Size="Size.Small" /> @program.Courses.Count course(s)
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Color="Color.Error" 
+                                                   OnClick="() => DeleteProgram(program.Id)" />
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <MudText Typo="Typo.body1">No programs found. Add a program using the button above.</MudText>
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
 </MudContainer>
+
+<MudDialog @bind-IsVisible="addDialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.MenuBook" Class="mr-1" />
+            Add New Program of Study
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField Label="Program Name"
+                          @bind-Value="newProgram.Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.MenuBook"
+                          AdornmentColor="Color.Primary" />
+
+            <MudSelect T="int"
+                       Label="Department"
+                       @bind-Value="newProgram.DepartmentId"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Business"
+                       AdornmentColor="Color.Primary">
+                @foreach (var dept in departments)
+                {
+                    <MudSelectItem Value="@dept.Id">@dept.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseAddDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="SaveProgram" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .program-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .program-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private List<ProgramOfStudy> programs = new();
+    private List<Department> departments = new();
+    private ProgramOfStudy newProgram = new();
+    private bool addDialogOpen = false;
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        programs = await programService.GetAllAsync();
+        departments = await departmentService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    private void OpenAddDialog()
+    {
+        newProgram = new ProgramOfStudy();
+        addDialogOpen = true;
+    }
+
+    private void CloseAddDialog()
+    {
+        addDialogOpen = false;
+        newProgram = new ProgramOfStudy();
+    }
+
+    private async Task SaveProgram()
+    {
+        if (string.IsNullOrWhiteSpace(newProgram.Name))
+        {
+            Snackbar.Add("Please enter a program name", Severity.Warning);
+            return;
+        }
+
+        if (newProgram.DepartmentId == 0)
+        {
+            Snackbar.Add("Please select a department", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await programService.AddAsync(newProgram);
+            Snackbar.Add($"Program '{newProgram.Name}' added successfully!", Severity.Success);
+            CloseAddDialog();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding program: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteProgram(int id)
+    {
+        try
+        {
+            var success = await programService.DeleteAsync(id);
+            if (success)
+            {
+                Snackbar.Add("Program deleted successfully!", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete program", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting program: {ex.Message}", Severity.Error);
+        }
+    }
+}

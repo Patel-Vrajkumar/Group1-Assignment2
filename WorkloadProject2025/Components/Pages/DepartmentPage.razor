@@ -1,55 +1,229 @@
-﻿@inject DepartmentService _departmentService;
-@inject SchoolService schoolService;
+﻿@inject DepartmentService _departmentService
+@inject SchoolService schoolService
+@inject ISnackbar Snackbar
 @page "/departmentpage"
 
-<DepartentForm DepartmentService="_departmentService" Schools = "schools" OnSaved="Save"></DepartentForm>
+<PageTitle>Departments</PageTitle>
 
-
-<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
-    <MudCardHeader>
-        <MudText Typo="Typo.h6" Class="font-semibold">Current Departments</MudText>
-    </MudCardHeader>
-
-    <MudCardContent>
-        <MudStack Spacing="2">
-            @foreach (var Dept in departments)
-            {
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">@Dept.Name</MudText>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary">View Departments</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            }
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Departments</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Manage academic departments</MudText>
+                </div>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddDialog">
+                    Add Department
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Secondary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadData">
+                    Refresh
+                </MudButton>
+            </MudStack>
         </MudStack>
-    </MudCardContent>
+    </MudPaper>
 
-</MudCard>
+    <MudCard Class="mt-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5">Departments List</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total: @departments.Count department(s)</MudText>
+                    </div>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (departments.Any())
+            {
+                <MudGrid Spacing="3">
+                    @foreach (var dept in departments.OrderBy(d => d.Name))
+                    {
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="4" Class="department-card" Style="height: 100%;">
+                                <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Style="color: white;" />
+                                            <div>
+                                                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">@dept.Name</MudText>
+                                                @if (dept.School != null)
+                                                {
+                                                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                                        <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Small" /> @dept.School.Name
+                                                    </MudText>
+                                                }
+                                            </div>
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        @if (dept.School != null)
+                                        {
+                                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                                <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #667eea;">
+                                                    School: @dept.School.Name
+                                                </MudText>
+                                            </MudPaper>
+                                        }
+                                    </MudStack>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Color="Color.Error" 
+                                                   OnClick="() => DeleteDepartment(dept.Id)" />
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <MudText Typo="Typo.body1">No departments found. Add a department using the button above.</MudText>
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+<MudDialog @bind-IsVisible="addDialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-1" />
+            Add New Department
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField Label="Department Name"
+                          @bind-Value="newDepartment.Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Business"
+                          AdornmentColor="Color.Primary" />
+
+            <MudSelect T="int"
+                       Label="School"
+                       @bind-Value="newDepartment.SchoolId"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.School"
+                       AdornmentColor="Color.Primary">
+                @foreach (var school in schools)
+                {
+                    <MudSelectItem Value="@school.Id">@school.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseAddDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="SaveDepartment" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .department-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .department-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
 
 @code {
-    //Make a list of Schools that we can load
-    List<Department> departments = new();
-    List<School> schools = new();
+    private List<Department> departments = new();
+    private List<School> schools = new();
+    private Department newDepartment = new();
+    private bool addDialogOpen = false;
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
     protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
     {
         departments = await _departmentService.GetAllAsync();
         schools = await schoolService.GetAllAsync();
-
-    }
-
-    public async Task Save()
-    {
-        //Refresh our list of schools
-        departments = await _departmentService.GetAllAsync();
         StateHasChanged();
     }
 
+    private void OpenAddDialog()
+    {
+        newDepartment = new Department();
+        addDialogOpen = true;
+    }
 
+    private void CloseAddDialog()
+    {
+        addDialogOpen = false;
+        newDepartment = new Department();
+    }
+
+    private async Task SaveDepartment()
+    {
+        if (string.IsNullOrWhiteSpace(newDepartment.Name))
+        {
+            Snackbar.Add("Please enter a department name", Severity.Warning);
+            return;
+        }
+
+        if (newDepartment.SchoolId == 0)
+        {
+            Snackbar.Add("Please select a school", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await _departmentService.AddAsync(newDepartment);
+            Snackbar.Add($"Department '{newDepartment.Name}' added successfully!", Severity.Success);
+            CloseAddDialog();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding department: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteDepartment(int id)
+    {
+        try
+        {
+            var success = await _departmentService.DeleteAsync(id);
+            if (success)
+            {
+                Snackbar.Add("Department deleted successfully!", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete department", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting department: {ex.Message}", Severity.Error);
+        }
+    }
 }
