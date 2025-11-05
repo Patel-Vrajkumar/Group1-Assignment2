@@ -7,5 +7,6 @@ namespace WorkloadProject2025.Services
         Task<ProgramOfStudy> AddAsync(ProgramOfStudy program, CancellationToken cancellationToken = default);
         Task<List<ProgramOfStudy>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<ProgramOfStudy?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
     }
 }

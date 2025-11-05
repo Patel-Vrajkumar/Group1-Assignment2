@@ -270,6 +270,8 @@
             }
 
             int copiedCount = 0;
+            var sourceTerm = await _context.Terms.FindAsync(selectedSourceTermId.Value);
+            
             foreach (var workload in sourceWorkloads)
             {
                 var newWorkload = new FacultyWorkLoad
@@ -284,7 +286,7 @@
                     DateAssigned = DateTime.Now,
                     Status = WorkloadStatus.Draft,
                     ClonedFromId = workload.Id,
-                    SourceYear = workload.Term?.Year
+                    SourceYear = sourceTerm?.Year
                 };
 
                 _context.FacultyWorkLoads.Add(newWorkload);

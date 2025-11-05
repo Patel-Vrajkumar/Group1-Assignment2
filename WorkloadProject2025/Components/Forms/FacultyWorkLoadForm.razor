@@ -186,6 +186,7 @@
     private bool IsFormValid()
     {
         return !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
+               facultyList.Any(f => f.Email == facultyWorkLoad.FacultyEmail) &&
                facultyWorkLoad.TermId > 0 &&
                facultyWorkLoad.HoursAssigned > 0;
     }
