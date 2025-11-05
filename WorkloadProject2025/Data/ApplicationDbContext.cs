@@ -23,6 +23,11 @@ namespace WorkloadProject2025.Data
             modelBuilder.Entity<FacultyWorkLoad>()
                 .Property(f => f.HoursAssigned)
                 .HasPrecision(18, 2);
+  
+            // Configure precision for Faculty MaxTeachingHours
+            modelBuilder.Entity<Faculty>()
+                .Property(f => f.MaxTeachingHours)
+                .HasPrecision(18, 2);
         }
     }
 }

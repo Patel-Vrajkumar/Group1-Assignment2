@@ -1,0 +1,267 @@
+@page "/workload/clone"
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Data.Models.DTOs
+@using WorkloadProject2025.Services
+@using MudBlazor
+@inject IFacultyWorkLoadService WorkloadService
+@inject ITermService TermService
+@inject IFacultyService FacultyService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudCard>
+        <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <CardHeaderContent>
+  <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Large" Style="color: white;" />
+<div>
+     <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Clone Workloads</MudText>
+    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+           Copy workload data from a previous term
+    </MudText>
+       </div>
+          </MudStack>
+     </CardHeaderContent>
+   </MudCardHeader>
+
+        <MudCardContent>
+       <MudStepper @ref="_stepper" Color="Color.Primary" Variant="Variant.Filled">
+    <!-- Step 1: Select Source Term -->
+          <MudStep Title="Select Source Term" Icon="@Icons.Material.Filled.Source">
+       <MudText Class="mb-4">Choose the term you want to copy workloads from:</MudText>
+      <MudSelect T="int" Label="Source Term" @bind-Value="@_sourceTermId" 
+          Variant="Variant.Outlined" Required="true">
+         @foreach (var term in _terms)
+    {
+     <MudSelectItem Value="@term.Id">@term.Name (@term.Year)</MudSelectItem>
+ }
+        </MudSelect>
+    
+  @if (_sourceTermId > 0)
+    {
+           var count = _sourceWorkloads.Count;
+       <MudAlert Severity="Severity.Info" Class="mt-4">
+         Found @count workload record(s) in the selected term
+           </MudAlert>
+      }
+     </MudStep>
+
+   <!-- Step 2: Select Target Term -->
+     <MudStep Title="Select Target Term" Icon="@Icons.Material.Filled.Flag">
+     <MudText Class="mb-4">Choose where to clone the workloads:</MudText>
+   <MudSelect T="int" Label="Target Term" @bind-Value="@_targetTermId"
+        Variant="Variant.Outlined" Required="true">
+      @foreach (var term in _terms.Where(t => t.Id != _sourceTermId))
+        {
+          <MudSelectItem Value="@term.Id">@term.Name (@term.Year)</MudSelectItem>
+ }
+       </MudSelect>
+   </MudStep>
+
+    <!-- Step 3: Filter Options -->
+       <MudStep Title="Filter Options" Icon="@Icons.Material.Filled.FilterAlt">
+    <MudText Typo="Typo.h6" Class="mb-3">Optional: Filter what to clone</MudText>
+      
+  <MudStack Spacing="3">
+   <MudAutocomplete T="Faculty" Label="Select Specific Faculty (leave empty for all)"
+      MultiSelection="true"
+       @bind-SelectedValues="@_selectedFaculty"
+       SearchFunc="@SearchFacultyAsync"
+     ToStringFunc="@(f => f != null ? $"{f.FirstName} {f.LastName}" : "")"
+       Variant="Variant.Outlined"
+     Clearable="true" />
+
+         <MudSwitch @bind-Value="@_includeAnnotations" Color="Color.Primary">
+Include annotations/notes from original workloads
+  </MudSwitch>
+   
+     <MudAlert Severity="Severity.Info">
+      <MudText Typo="Typo.body2">
+        <strong>Note:</strong> Cloned workloads will be created as drafts and can be edited before approval.
+ </MudText>
+       </MudAlert>
+        </MudStack>
+         </MudStep>
+
+  <!-- Step 4: Review & Confirm -->
+         <MudStep Title="Review & Confirm" Icon="@Icons.Material.Filled.CheckCircle">
+ <MudText Typo="Typo.h6" Class="mb-3">Review your selection:</MudText>
+   
+     <MudPaper Class="pa-4" Elevation="0" Style="background-color: #f5f5f5;">
+        <MudStack Spacing="2">
+     <MudStack Row="true" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.body1"><strong>Source Term:</strong></MudText>
+       <MudText Typo="Typo.body1">@GetTermName(_sourceTermId)</MudText>
+      </MudStack>
+            
+         <MudDivider />
+            
+    <MudStack Row="true" Justify="Justify.SpaceBetween">
+   <MudText Typo="Typo.body1"><strong>Target Term:</strong></MudText>
+     <MudText Typo="Typo.body1">@GetTermName(_targetTermId)</MudText>
+      </MudStack>
+        
+             <MudDivider />
+         
+    <MudStack Row="true" Justify="Justify.SpaceBetween">
+         <MudText Typo="Typo.body1"><strong>Faculty Filter:</strong></MudText>
+           <MudText Typo="Typo.body1">
+      @(_selectedFaculty.Any() ? $"{_selectedFaculty.Count()} selected" : "All faculty")
+   </MudText>
+  </MudStack>
+                 
+  <MudDivider />
+   
+   <MudStack Row="true" Justify="Justify.SpaceBetween">
+      <MudText Typo="Typo.body1"><strong>Include Annotations:</strong></MudText>
+ <MudText Typo="Typo.body1">@(_includeAnnotations ? "Yes" : "No")</MudText>
+  </MudStack>
+         
+         <MudDivider />
+       
+     <MudStack Row="true" Justify="Justify.SpaceBetween">
+   <MudText Typo="Typo.body1"><strong>Estimated Records:</strong></MudText>
+ <MudChip T="string" Color="Color.Primary">@_estimatedRecordCount</MudChip>
+        </MudStack>
+         </MudStack>
+    </MudPaper>
+                    
+    <MudButton Variant="Variant.Filled" Color="Color.Success" 
+      StartIcon="@Icons.Material.Filled.ContentCopy"
+    OnClick="@PerformClone" 
+       FullWidth="true" Class="mt-4"
+      Disabled="@_isCloning">
+      @if (_isCloning)
+     {
+   <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+           <span class="ml-2">Cloning...</span>
+  }
+    else
+      {
+        <span>Clone Workloads</span>
+       }
+           </MudButton>
+       </MudStep>
+       </MudStepper>
+    </MudCardContent>
+    </MudCard>
+
+    @if (_cloneComplete)
+    {
+        <MudCard Class="mt-4">
+       <MudCardContent>
+     <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle">
+       <MudText Typo="Typo.h6">Clone Completed Successfully!</MudText>
+   <MudText Typo="Typo.body2">
+  Created @_clonedCount workload record(s) for @GetTermName(_targetTermId)
+     </MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/workload" Class="mt-2">
+       View Workloads
+     </MudButton>
+      </MudAlert>
+     </MudCardContent>
+        </MudCard>
+ }
+</MudContainer>
+
+@code {
+    private MudStepper? _stepper;
+    private List<Term> _terms = new();
+    private List<Faculty> _allFaculty = new();
+    private List<FacultyWorkLoad> _sourceWorkloads = new();
+    
+    private int _sourceTermId;
+    private int _targetTermId;
+    private IEnumerable<Faculty> _selectedFaculty = new List<Faculty>();
+    private bool _includeAnnotations = true;
+    private bool _isCloning;
+    private bool _cloneComplete;
+    private int _clonedCount;
+    private int _estimatedRecordCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+_terms = await TermService.GetAllAsync();
+        _allFaculty = await FacultyService.GetAllAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await UpdateSourceWorkloads();
+        UpdateEstimatedRecordCount();
+    }
+
+    private async Task UpdateSourceWorkloads()
+    {
+     if (_sourceTermId > 0)
+   {
+   _sourceWorkloads = await WorkloadService.GetByTermAsync(_sourceTermId);
+     }
+    }
+
+    private void UpdateEstimatedRecordCount()
+    {
+        if (_selectedFaculty.Any())
+        {
+  var emails = _selectedFaculty.Select(f => f.Email).ToHashSet();
+   _estimatedRecordCount = _sourceWorkloads.Count(w => emails.Contains(w.FacultyEmail));
+        }
+  else
+   {
+       _estimatedRecordCount = _sourceWorkloads.Count;
+        }
+    }
+
+    private async Task<IEnumerable<Faculty>> SearchFacultyAsync(string searchText, CancellationToken token)
+    {
+   if (string.IsNullOrWhiteSpace(searchText))
+  return _allFaculty.Take(10);
+  
+ return _allFaculty
+   .Where(f => f.FirstName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+      f.LastName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+   f.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+     .Take(10);
+    }
+
+    private string GetTermName(int termId)
+ {
+        var term = _terms.FirstOrDefault(t => t.Id == termId);
+        return term != null ? $"{term.Name} ({term.Year})" : "Not selected";
+    }
+
+    private async Task PerformClone()
+    {
+  if (_sourceTermId == 0 || _targetTermId == 0)
+   {
+      Snackbar.Add("Please select both source and target terms", Severity.Warning);
+ return;
+        }
+
+  _isCloning = true;
+   try
+        {
+       var request = new WorkloadCloneRequest
+    {
+  SourceTermId = _sourceTermId,
+      TargetTermId = _targetTermId,
+   FacultyEmails = _selectedFaculty.Any() ? _selectedFaculty.Select(f => f.Email).ToList() : null,
+       IncludeAnnotations = _includeAnnotations
+     };
+
+      var clonedWorkloads = await WorkloadService.CloneWorkloadsAsync(request, "CurrentUser");
+       _clonedCount = clonedWorkloads.Count;
+      _cloneComplete = true;
+
+      Snackbar.Add($"Successfully cloned {_clonedCount} workload records", Severity.Success);
+      }
+     catch (Exception ex)
+    {
+     Snackbar.Add($"Error cloning workloads: {ex.Message}", Severity.Error);
+}
+        finally
+   {
+    _isCloning = false;
+        }
+    }
+}

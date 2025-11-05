@@ -1,0 +1,400 @@
+@page "/workload/import-export"
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Data.Models.DTOs
+@using WorkloadProject2025.Services
+@using MudBlazor
+@using System.Text
+@inject IFacultyWorkLoadService WorkloadService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.ImportExport" /> Import & Export
+    </MudText>
+
+    <MudGrid>
+   <!-- Import Section -->
+   <MudItem xs="12" md="6">
+      <MudCard>
+            <MudCardHeader Style="background-color: #e3f2fd;">
+ <CardHeaderContent>
+         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+         <MudIcon Icon="@Icons.Material.Filled.Upload" Color="Color.Primary" />
+  <MudText Typo="Typo.h6">Import Workloads</MudText>
+   </MudStack>
+      </CardHeaderContent>
+     </MudCardHeader>
+       <MudCardContent>
+      <MudStack Spacing="3">
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+   Upload an Excel file to import multiple workload records
+   </MudText>
+
+       <MudFileUpload T="IBrowserFile" Accept=".xlsx,.xls" 
+         OnFilesChanged="@OnFileSelected" MaximumFileCount="1">
+       <ActivatorContent>
+       <MudButton Variant="Variant.Filled" Color="Color.Primary"
+   StartIcon="@Icons.Material.Filled.CloudUpload" FullWidth="true">
+       Select Excel File
+      </MudButton>
+        </ActivatorContent>
+ </MudFileUpload>
+
+       @if (_selectedFile != null)
+      {
+     <MudChip T="string" Icon="@Icons.Material.Filled.Description" Color="Color.Info">
+  @_selectedFile.Name (@FormatFileSize(_selectedFile.Size))
+  </MudChip>
+       }
+
+ <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+   StartIcon="@Icons.Material.Filled.Download"
+    OnClick="@DownloadTemplate" FullWidth="true">
+       Download Import Template
+        </MudButton>
+
+   <MudDivider />
+
+        @if (_importData.Any())
+      {
+      <MudText Typo="Typo.subtitle2">
+       Preview: @_importData.Count record(s) loaded
+       </MudText>
+
+      <MudPaper Class="pa-2" Elevation="0" Style="max-height: 200px; overflow-y: auto;">
+        @foreach (var (item, index) in _importData.Select((item, index) => (item, index)).Take(5))
+   {
+    <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">
+     @(index + 1). @item.FacultyEmail - @item.CourseName (@item.HoursAssigned hrs)
+     </MudText>
+  }
+    @if (_importData.Count > 5)
+        {
+ <MudText Typo="Typo.caption" Color="Color.Secondary">
+        ...and @(_importData.Count - 5) more
+     </MudText>
+           }
+      </MudPaper>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Success"
+       StartIcon="@Icons.Material.Filled.CheckCircle"
+           OnClick="@ValidateAndImport" FullWidth="true"
+      Disabled="@_isProcessing">
+  @if (_isProcessing)
+        {
+    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+      <span class="ml-2">Processing...</span>
+          }
+  else
+      {
+      <span>Validate & Import</span>
+      }
+          </MudButton>
+     }
+      </MudStack>
+    </MudCardContent>
+   </MudCard>
+        </MudItem>
+
+      <!-- Export Section -->
+        <MudItem xs="12" md="6">
+       <MudCard>
+      <MudCardHeader Style="background-color: #e8f5e9;">
+   <CardHeaderContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudIcon Icon="@Icons.Material.Filled.Download" Color="Color.Success" />
+      <MudText Typo="Typo.h6">Export Workloads</MudText>
+    </MudStack>
+   </CardHeaderContent>
+     </MudCardHeader>
+      <MudCardContent>
+      <MudStack Spacing="3">
+      <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Export workload data to Excel format
+    </MudText>
+
+   <MudSelect T="int?" Label="Select Term" @bind-Value="@_exportTermId" 
+      Variant="Variant.Outlined">
+ <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
+     @foreach (var term in _terms)
+    {
+   <MudSelectItem Value="@((int?)term.Id)">@term.Name (@term.Year)</MudSelectItem>
+      }
+      </MudSelect>
+
+    <MudSelect T="WorkloadStatus?" Label="Select Status" @bind-Value="@_exportStatus"
+          Variant="Variant.Outlined">
+        <MudSelectItem Value="@((WorkloadStatus?)null)">All Statuses</MudSelectItem>
+@foreach (WorkloadStatus status in Enum.GetValues(typeof(WorkloadStatus)))
+   {
+       <MudSelectItem Value="@((WorkloadStatus?)status)">@status</MudSelectItem>
+      }
+   </MudSelect>
+
+   <MudButton Variant="Variant.Filled" Color="Color.Success"
+      StartIcon="@Icons.Material.Filled.FileDownload"
+     OnClick="@ExportToExcel" FullWidth="true"
+       Disabled="@_isProcessing">
+        @if (_isProcessing)
+      {
+   <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+ <span class="ml-2">Exporting...</span>
+  }
+   else
+     {
+       <span>Export to Excel</span>
+    }
+     </MudButton>
+
+      <MudDivider />
+
+  <MudText Typo="Typo.subtitle2" Class="mt-2">Export Statistics</MudText>
+     <MudPaper Class="pa-3" Elevation="0" Style="background-color: #f5f5f5;">
+          <MudStack Spacing="1">
+ <MudText Typo="Typo.body2">Total Records: @_exportRecordCount</MudText>
+     <MudText Typo="Typo.caption" Color="Color.Secondary">
+         Based on current filters
+  </MudText>
+    </MudStack>
+    </MudPaper>
+  </MudStack>
+       </MudCardContent>
+   </MudCard>
+        </MudItem>
+
+  <!-- Validation Results -->
+  @if (_validationResults.Any())
+     {
+       <MudItem xs="12">
+ <MudCard>
+      <MudCardHeader>
+     <CardHeaderContent>
+ <MudText Typo="Typo.h6">Validation Results</MudText>
+    </CardHeaderContent>
+       </MudCardHeader>
+   <MudCardContent>
+        <MudStack Spacing="2">
+           <MudStack Row="true" Spacing="4">
+  <MudChip T="string" Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success">
+       Valid: @_validationResults.Count(r => r.IsValid)
+   </MudChip>
+  <MudChip T="string" Icon="@Icons.Material.Filled.Error" Color="Color.Error">
+    Invalid: @_validationResults.Count(r => !r.IsValid)
+   </MudChip>
+      </MudStack>
+
+@if (_validationResults.Any(r => !r.IsValid))
+        {
+     <MudExpansionPanels>
+  <MudExpansionPanel Text="View Errors">
+           <MudList T="string" Dense="true">
+         @foreach (var item in _validationResults.Where(r => !r.IsValid))
+  {
+    <MudListItem T="string">
+     <MudText Typo="Typo.body2" Color="Color.Error">
+ <strong>@item.FacultyEmail</strong>
+          </MudText>
+      @foreach (var error in item.ValidationErrors)
+    {
+       <MudText Typo="Typo.caption" Class="ml-4">• @error</MudText>
+  }
+       </MudListItem>
+        }
+            </MudList>
+   </MudExpansionPanel>
+   </MudExpansionPanels>
+        }
+    </MudStack>
+    </MudCardContent>
+       </MudCard>
+   </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private IBrowserFile? _selectedFile;
+ private List<WorkloadImportDto> _importData = new();
+    private List<WorkloadImportDto> _validationResults = new();
+    private List<Term> _terms = new();
+    private bool _isProcessing;
+    
+ private int? _exportTermId;
+    private WorkloadStatus? _exportStatus;
+    private int _exportRecordCount;
+
+    [Inject] private ITermService TermService { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+     _terms = await TermService.GetAllAsync();
+        await UpdateExportCount();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+   _importData.Clear();
+   _validationResults.Clear();
+
+   // For demo purposes, simulate parsing Excel
+   // In real implementation, use EPPlus or ClosedXML to parse
+SimulateExcelParsing();
+    }
+
+    private void SimulateExcelParsing()
+    {
+      // This is a placeholder - in real implementation, read the Excel file
+        _importData = new List<WorkloadImportDto>
+ {
+      new WorkloadImportDto
+      {
+    FacultyEmail = "john.doe@example.com",
+   CourseName = "Introduction to Programming",
+       TermName = "Fall 2025",
+     WorkloadType = "Course_Lecture",
+     HoursAssigned = 3.0m,
+       Description = "Core course"
+         },
+ // Add more sample data...
+   };
+    }
+
+    private async Task DownloadTemplate()
+    {
+    _isProcessing = true;
+     try
+   {
+    var templateBytes = await WorkloadService.GenerateImportTemplateAsync();
+ await DownloadFile("workload-import-template.xlsx", templateBytes);
+     Snackbar.Add("Template downloaded successfully", Severity.Success);
+        }
+        catch (Exception ex)
+{
+      Snackbar.Add($"Error downloading template: {ex.Message}", Severity.Error);
+  }
+        finally
+        {
+   _isProcessing = false;
+        }
+    }
+
+ private async Task ValidateAndImport()
+    {
+      _isProcessing = true;
+     try
+    {
+     // Validate
+       _validationResults = await WorkloadService.ValidateImportDataAsync(_importData);
+ 
+    var validCount = _validationResults.Count(r => r.IsValid);
+       var invalidCount = _validationResults.Count(r => !r.IsValid);
+
+       if (invalidCount > 0)
+        {
+     Snackbar.Add($"Validation found {invalidCount} error(s). Please review.", Severity.Warning);
+   }
+
+            if (validCount > 0)
+      {
+       // Import valid records
+       var importedCount = await WorkloadService.ImportWorkloadsAsync(_validationResults, "CurrentUser");
+    Snackbar.Add($"Successfully imported {importedCount} workload record(s)", Severity.Success);
+    
+     _importData.Clear();
+     _selectedFile = null;
+    }
+        }
+ catch (Exception ex)
+        {
+   Snackbar.Add($"Error importing workloads: {ex.Message}", Severity.Error);
+        }
+        finally
+  {
+ _isProcessing = false;
+ }
+    }
+
+    private async Task ExportToExcel()
+    {
+_isProcessing = true;
+        try
+ {
+    List<FacultyWorkLoad> workloads;
+            
+     if (_exportTermId.HasValue)
+      {
+        workloads = await WorkloadService.GetByTermAsync(_exportTermId.Value);
+      }
+     else if (_exportStatus.HasValue)
+    {
+   workloads = await WorkloadService.GetByStatusAsync(_exportStatus.Value);
+    }
+          else
+   {
+     workloads = await WorkloadService.GetAllAsync();
+   }
+
+      var excelBytes = await WorkloadService.ExportToExcelAsync(workloads);
+   var fileName = $"workload-export-{DateTime.Now:yyyy-MM-dd-HHmmss}.xlsx";
+      
+   await DownloadFile(fileName, excelBytes);
+  Snackbar.Add($"Exported {workloads.Count} records successfully", Severity.Success);
+     }
+  catch (Exception ex)
+        {
+       Snackbar.Add($"Error exporting workloads: {ex.Message}", Severity.Error);
+        }
+        finally
+   {
+ _isProcessing = false;
+   }
+    }
+
+    private async Task UpdateExportCount()
+    {
+        try
+  {
+   List<FacultyWorkLoad> workloads;
+  
+  if (_exportTermId.HasValue)
+      {
+    workloads = await WorkloadService.GetByTermAsync(_exportTermId.Value);
+     }
+     else if (_exportStatus.HasValue)
+      {
+   workloads = await WorkloadService.GetByStatusAsync(_exportStatus.Value);
+  }
+      else
+   {
+     workloads = await WorkloadService.GetAllAsync();
+      }
+    
+  _exportRecordCount = workloads.Count;
+        }
+   catch
+   {
+      _exportRecordCount = 0;
+        }
+    }
+
+    private async Task DownloadFile(string fileName, byte[] data)
+    {
+        var base64 = Convert.ToBase64String(data);
+     await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64);
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+   string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+  int order = 0;
+      while (len >= 1024 && order < sizes.Length - 1)
+      {
+      order++;
+   len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

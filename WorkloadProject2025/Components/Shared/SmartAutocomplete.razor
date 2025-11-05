@@ -1,0 +1,78 @@
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+@typeparam TItem
+@typeparam TValue
+
+<MudAutocomplete T="TItem"
+   Label="@Label"
+    @bind-Value="@SelectedItem"
+     SearchFunc="@SearchAsync"
+         ToStringFunc="@ItemToString"
+       Variant="Variant.Outlined"
+         Required="@Required"
+       Disabled="@Disabled"
+        Adornment="@Adornment"
+ AdornmentIcon="@AdornmentIcon"
+     AdornmentColor="@AdornmentColor"
+ HelperText="@HelperText"
+        MaxItems="@MaxItems"
+       ResetValueOnEmptyText="true"
+        CoerceText="true"
+    ShowProgressIndicator="true">
+ <ItemTemplate Context="item">
+        <div class="d-flex align-items-center">
+    @if (IsPinned?.Invoke(item) == true)
+            {
+        <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Warning" Class="mr-2" />
+     }
+   <div>
+      <MudText Typo="Typo.body2">@ItemToString(item)</MudText>
+      @if (!string.IsNullOrWhiteSpace(GetSecondaryText?.Invoke(item)))
+ {
+             <MudText Typo="Typo.caption" Color="Color.Secondary">@GetSecondaryText(item)</MudText>
+   }
+    </div>
+        </div>
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public TItem? SelectedItem { get; set; }
+    [Parameter] public EventCallback<TItem?> SelectedItemChanged { get; set; }
+    [Parameter] public Func<string, Task<IEnumerable<TItem>>> SearchFunc { get; set; } = null!;
+  [Parameter] public Func<TItem, string> ItemToString { get; set; } = item => item?.ToString() ?? "";
+    [Parameter] public Func<TItem, string>? GetSecondaryText { get; set; }
+    [Parameter] public Func<TItem, bool>? IsPinned { get; set; }
+    [Parameter] public bool Required { get; set; } = false;
+ [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public Adornment Adornment { get; set; } = Adornment.Start;
+    [Parameter] public string AdornmentIcon { get; set; } = Icons.Material.Filled.Search;
+    [Parameter] public Color AdornmentColor { get; set; } = Color.Primary;
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public int? MaxItems { get; set; } = 10;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedItem != null)
+{
+            await SelectedItemChanged.InvokeAsync(SelectedItem);
+ }
+    }
+
+    private async Task<IEnumerable<TItem>> SearchAsync(string value, CancellationToken token)
+    {
+        if (SearchFunc == null)
+       return Enumerable.Empty<TItem>();
+
+        var results = await SearchFunc(value);
+        
+        // Sort pinned items first
+      if (IsPinned != null)
+        {
+            results = results.OrderByDescending(item => IsPinned(item));
+        }
+    
+        return results;
+    }
+}

@@ -242,7 +242,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasIndex("ProgramOfStudyId");
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.Department", b =>
@@ -264,7 +264,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasIndex("SchoolId");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.Faculty", b =>
@@ -286,7 +286,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasKey("Email");
 
-                    b.ToTable("Faculty");
+                    b.ToTable("Faculty", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.FacultyWorkLoad", b =>
@@ -333,7 +333,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasIndex("WorkloadCategoryId");
 
-                    b.ToTable("FacultyWorkLoads");
+                    b.ToTable("FacultyWorkLoads", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.ProgramOfStudy", b =>
@@ -355,7 +355,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("ProgramsOfStudy");
+                    b.ToTable("ProgramsOfStudy", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.School", b =>
@@ -372,7 +372,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Schools");
+                    b.ToTable("Schools", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.Term", b =>
@@ -395,7 +395,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Terms");
+                    b.ToTable("Terms", (string)null);
                 });
 
             modelBuilder.Entity("WorkloadProject2025.Data.Models.WorkloadCategory", b =>
@@ -420,7 +420,7 @@ namespace WorkloadProject2025.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("WorkloadCategories");
+                    b.ToTable("WorkloadCategories", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

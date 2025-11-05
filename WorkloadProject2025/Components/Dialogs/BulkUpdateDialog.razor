@@ -1,0 +1,78 @@
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Data.Models.DTOs
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+ <MudText Typo="Typo.body1" Class="mb-4">
+   Update @WorkloadCount selected workload records
+    </MudText>
+
+     <MudGrid>
+ <MudItem xs="12">
+     <MudNumericField T="decimal?" Label="Hours Assigned (optional)"
+  @bind-Value="@_hoursAssigned"
+Variant="Variant.Outlined"
+     Min="0" Max="40"
+     HelperText="Leave empty to keep existing values" />
+   </MudItem>
+
+  <MudItem xs="12">
+     <MudSelect T="WorkloadStatus?" Label="Status (optional)"
+ @bind-Value="@_status"
+Variant="Variant.Outlined"
+  Clearable="true"
+     HelperText="Leave empty to keep existing values">
+   <MudSelectItem Value="@((WorkloadStatus?)null)">- Keep Existing -</MudSelectItem>
+  @foreach (WorkloadStatus status in Enum.GetValues(typeof(WorkloadStatus)))
+{
+    <MudSelectItem Value="@((WorkloadStatus?)status)">@status</MudSelectItem>
+         }
+   </MudSelect>
+    </MudItem>
+
+  <MudItem xs="12">
+    <MudTextField Label="Annotations (optional)"
+        @bind-Value="@_annotations"
+    Variant="Variant.Outlined"
+     Lines="3"
+    HelperText="Add notes to selected records" />
+     </MudItem>
+
+   <MudItem xs="12">
+  <MudSwitch @bind-Value="@_appendAnnotations" 
+    Color="Color.Primary" 
+     Label="Append to existing annotations (instead of replacing)" 
+ Disabled="@string.IsNullOrWhiteSpace(_annotations)" />
+  </MudItem>
+   </MudGrid>
+    </DialogContent>
+ <DialogActions>
+   <MudButton OnClick="@(() => OnCancel.InvokeAsync())">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Update</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public int WorkloadCount { get; set; }
+  [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<BulkUpdateRequest> OnSubmit { get; set; }
+
+  private decimal? _hoursAssigned;
+    private WorkloadStatus? _status;
+    private string? _annotations;
+ private bool _appendAnnotations = true;
+
+    private async Task Submit()
+    {
+   var request = new BulkUpdateRequest
+      {
+   HoursAssigned = _hoursAssigned,
+    Status = _status,
+   Annotations = _annotations,
+AppendAnnotations = _appendAnnotations
+   };
+  
+     await OnSubmit.InvokeAsync(request);
+    }
+}

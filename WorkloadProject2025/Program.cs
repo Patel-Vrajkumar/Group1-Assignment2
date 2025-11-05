@@ -29,6 +29,10 @@ builder.Services.AddScoped<ProgramsOfStudyService>();
 builder.Services.AddScoped<TermService>();
 builder.Services.AddScoped<DepartmentService>();
 builder.Services.AddScoped<FacultyWorkLoadService>();
+builder.Services.AddScoped<IFacultyWorkLoadService, FacultyWorkLoadService>();
+builder.Services.AddScoped<IFacultyService, FacultyService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ITermService, TermService>();
 
 
 

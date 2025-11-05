@@ -1,0 +1,276 @@
+@page "/workload/bulk-operations"
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Data.Models.DTOs
+@using WorkloadProject2025.Services
+@using MudBlazor
+@inject IFacultyWorkLoadService WorkloadService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.DynamicFeed" /> Bulk Operations
+    </MudText>
+
+    <!-- Filter Section -->
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+   <MudText Typo="Typo.h6">Filter Workloads</MudText>
+ </CardHeaderContent>
+   </MudCardHeader>
+        <MudCardContent>
+         <MudGrid>
+  <MudItem xs="12" md="4">
+            <MudSelect T="int?" Label="Term" @bind-Value="@_selectedTermId" Clearable="true">
+    <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
+           @foreach (var term in _terms)
+   {
+      <MudSelectItem Value="@((int?)term.Id)">@term.Name (@term.Year)</MudSelectItem>
+          }
+           </MudSelect>
+           </MudItem>
+     <MudItem xs="12" md="4">
+          <MudSelect T="WorkloadStatus?" Label="Status" @bind-Value="@_selectedStatus" Clearable="true">
+     <MudSelectItem Value="@((WorkloadStatus?)null)">All Statuses</MudSelectItem>
+    @foreach (WorkloadStatus status in Enum.GetValues(typeof(WorkloadStatus)))
+     {
+    <MudSelectItem Value="@((WorkloadStatus?)status)">@status</MudSelectItem>
+        }
+  </MudSelect>
+           </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-end">
+       <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+      StartIcon="@Icons.Material.Filled.Search"
+OnClick="@LoadWorkloads" FullWidth="true">
+       Load Workloads
+          </MudButton>
+         </MudItem>
+            </MudGrid>
+   </MudCardContent>
+    </MudCard>
+
+    <!-- Data Grid -->
+    <MudCard>
+        <MudCardHeader>
+       <CardHeaderContent>
+   <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+             <MudText Typo="Typo.h6">
+       Workload Records (@_selectedWorkloads.Count selected of @_workloads.Count)
+     </MudText>
+     <MudStack Row="true" Spacing="2">
+         <MudButton Variant="Variant.Filled" Color="Color.Error"
+   StartIcon="@Icons.Material.Filled.Delete"
+       Disabled="@(!_selectedWorkloads.Any())"
+     OnClick="@BulkDelete">
+      Bulk Delete
+     </MudButton>
+          </MudStack>
+       </MudStack>
+            </CardHeaderContent>
+    </MudCardHeader>
+        <MudCardContent>
+         <MudTable T="FacultyWorkLoad" Items="@_workloads" 
+ MultiSelection="true" @bind-SelectedItems="_selectedWorkloads"
+   Hover="true" Striped="true" Dense="true"
+      Loading="@_isLoading" LoadingProgressColor="Color.Primary">
+       <HeaderContent>
+        <MudTh>Faculty</MudTh>
+          <MudTh>Course</MudTh>
+           <MudTh>Term</MudTh>
+       <MudTh>Type</MudTh>
+             <MudTh>Hours</MudTh>
+        <MudTh>Status</MudTh>
+       <MudTh>Date Assigned</MudTh>
+           </HeaderContent>
+    <RowTemplate>
+          <MudTd DataLabel="Faculty">
+    <MudStack Spacing="0">
+     <MudText Typo="Typo.body2">@context.Faculty?.FirstName @context.Faculty?.LastName</MudText>
+       <MudText Typo="Typo.caption" Color="Color.Secondary">@context.FacultyEmail</MudText>
+        </MudStack>
+        </MudTd>
+    <MudTd DataLabel="Course">@(context.Course?.Name ?? "N/A")</MudTd>
+   <MudTd DataLabel="Term">@context.Term?.Name</MudTd>
+                <MudTd DataLabel="Type">
+          <MudChip T="string" Size="Size.Small">@context.Workload.ToString().Replace("_", " ")</MudChip>
+     </MudTd>
+        <MudTd DataLabel="Hours">@context.HoursAssigned.ToString("F1")</MudTd>
+   <MudTd DataLabel="Status">
+ <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+   @context.Status
+             </MudChip>
+  </MudTd>
+  <MudTd DataLabel="Date">@context.DateAssigned?.ToString("yyyy-MM-dd")</MudTd>
+   </RowTemplate>
+ <PagerContent>
+          <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+  </PagerContent>
+       </MudTable>
+  </MudCardContent>
+    </MudCard>
+
+    @if (_selectedWorkloads.Any())
+    {
+   <MudCard Class="mb-4">
+     <MudCardHeader>
+  <CardHeaderContent>
+         <MudText Typo="Typo.h6">Bulk Update Options</MudText>
+    </CardHeaderContent>
+        </MudCardHeader>
+  <MudCardContent>
+    <MudGrid>
+         <MudItem xs="12" md="4">
+    <MudNumericField T="decimal?" Label="Hours Assigned (optional)"
+      @bind-Value="@_bulkHours"
+         Variant="Variant.Outlined"
+      Min="0" Max="40"
+   HelperText="Leave empty to keep existing" />
+  </MudItem>
+   <MudItem xs="12" md="4">
+     <MudSelect T="WorkloadStatus?" Label="Status (optional)"
+      @bind-Value="@_bulkStatus"
+     Variant="Variant.Outlined"
+ Clearable="true">
+          <MudSelectItem Value="@((WorkloadStatus?)null)">- Keep Existing -</MudSelectItem>
+    @foreach (WorkloadStatus status in Enum.GetValues(typeof(WorkloadStatus)))
+          {
+       <MudSelectItem Value="@((WorkloadStatus?)status)">@status</MudSelectItem>
+      }
+   </MudSelect>
+       </MudItem>
+  <MudItem xs="12" md="4" Class="d-flex align-end">
+ <MudButton Variant="Variant.Filled" Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.Edit"
+       OnClick="@ApplyBulkUpdate" FullWidth="true">
+  Apply Updates
+          </MudButton>
+ </MudItem>
+      </MudGrid>
+     </MudCardContent>
+   </MudCard>
+    }
+</MudContainer>
+
+@code {
+    private List<FacultyWorkLoad> _workloads = new();
+    private HashSet<FacultyWorkLoad> _selectedWorkloads = new();
+    private List<Term> _terms = new();
+    private bool _isLoading;
+  
+    private int? _selectedTermId;
+    private WorkloadStatus? _selectedStatus;
+    
+    // Bulk update fields
+ private decimal? _bulkHours;
+  private WorkloadStatus? _bulkStatus;
+
+    [Inject] private ITermService TermService { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+     _terms = await TermService.GetAllAsync();
+    }
+
+    private async Task LoadWorkloads()
+    {
+      _isLoading = true;
+  try
+        {
+   if (_selectedTermId.HasValue)
+       {
+       _workloads = await WorkloadService.GetByTermAsync(_selectedTermId.Value);
+        }
+            else if (_selectedStatus.HasValue)
+{
+      _workloads = await WorkloadService.GetByStatusAsync(_selectedStatus.Value);
+            }
+    else
+      {
+       _workloads = await WorkloadService.GetAllAsync();
+   }
+ 
+  _selectedWorkloads.Clear();
+  }
+   finally
+        {
+ _isLoading = false;
+        }
+    }
+
+   private async Task ApplyBulkUpdate()
+    {
+  if (!_selectedWorkloads.Any())
+        {
+Snackbar.Add("Please select workloads to update", Severity.Warning);
+ return;
+}
+
+        var request = new BulkUpdateRequest
+    {
+  WorkloadIds = _selectedWorkloads.Select(w => w.Id).ToList(),
+            HoursAssigned = _bulkHours,
+         Status = _bulkStatus
+        };
+
+  _isLoading = true;
+   try
+  {
+      var count = await WorkloadService.BulkUpdateAsync(request, "CurrentUser");
+    Snackbar.Add($"Successfully updated {count} workload records", Severity.Success);
+    await LoadWorkloads();
+_bulkHours = null;
+      _bulkStatus = null;
+ }
+        catch (Exception ex)
+   {
+Snackbar.Add($"Error updating workloads: {ex.Message}", Severity.Error);
+}
+        finally
+        {
+          _isLoading = false;
+   }
+    }
+
+    private async Task BulkDelete()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+        "Confirm Bulk Delete",
+     $"Are you sure you want to delete {_selectedWorkloads.Count} workload records? This action cannot be undone.",
+     yesText: "Delete", cancelText: "Cancel");
+
+    if (confirmed == true)
+{
+    _isLoading = true;
+   try
+            {
+var ids = _selectedWorkloads.Select(w => w.Id).ToList();
+  var count = await WorkloadService.BulkDeleteAsync(ids);
+   
+         Snackbar.Add($"Successfully deleted {count} workload records", Severity.Success);
+  await LoadWorkloads();
+  }
+  catch (Exception ex)
+          {
+      Snackbar.Add($"Error deleting workloads: {ex.Message}", Severity.Error);
+}
+      finally
+      {
+            _isLoading = false;
+          }
+  }
+    }
+
+    private Color GetStatusColor(WorkloadStatus status)
+  {
+        return status switch
+   {
+            WorkloadStatus.Draft => Color.Default,
+     WorkloadStatus.Pending => Color.Info,
+      WorkloadStatus.Approved => Color.Success,
+          WorkloadStatus.Rejected => Color.Error,
+         WorkloadStatus.Overloaded => Color.Warning,
+   _ => Color.Default
+        };
+    }
+}
