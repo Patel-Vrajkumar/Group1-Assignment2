@@ -3,7 +3,6 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext _context
-@inject IWorkloadCalculationService Calc
 
 <PageTitle>Faculty Profile & Workload</PageTitle>
 
@@ -92,7 +91,7 @@
  @{
  var workloads = facultyWorkloads.Where(w => w.FacultyEmail == faculty.Email).ToList();
  var totalHours = workloads.Sum(w => w.HoursAssigned);
- var summary = Calc.GetSummaryForFaculty(faculty.Email, facultyWorkloads);
+ var summary = GetSummaryForFaculty(faculty.Email);
  }
  <MudChip T="string" Color="@(summary.Violations>0? Color.Error: Color.Success)" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Warning">
  @(summary.Violations>0? $"{summary.Violations} violation(s)": "OK")
@@ -246,8 +245,8 @@
  sb.AppendLine("Email,FirstName,LastName,Phone,EmploymentType,TotalHours,Violations");
  foreach (var f in GetFilteredFaculty())
  {
- var summary = Calc.GetSummaryForFaculty(f.Email, facultyWorkloads);
- sb.AppendLine($"{f.Email},{Escape(f.FirstName)},{Escape(f.LastName)},{Escape(f.PhoneNumber)},{GetEmploymentType(f.Email)},{summary.TotalHours},{summary.Violations}");
+ var summary = GetSummaryForFaculty(f.Email);
+ sb.AppendLine($"{f.Email},{Escape(f.FirstName)},{Escape(f.LastName)},{Escape(f.PhoneNumber)},{f.EmploymentCategory},{summary.TotalHours},{summary.Violations}");
  }
  csvContent = sb.ToString();
  }
@@ -260,10 +259,12 @@
  return v;
  }
 
- private string GetEmploymentType(string email)
+ private (decimal TotalHours, int Violations) GetSummaryForFaculty(string email)
  {
- var f = facultyList.FirstOrDefault(x => x.Email == email);
- return f?.EmploymentCategory.ToString() ?? string.Empty;
+ var items = facultyWorkloads.Where(w => w.FacultyEmail == email);
+ var total = items.Sum(w => w.HoursAssigned * (w.PercentShare.HasValue ? (w.PercentShare.Value/100m) :1m));
+ // Basic placeholder: no violations logic
+ return (total,0);
  }
 
  private Color GetWorkloadColor(decimal hours)

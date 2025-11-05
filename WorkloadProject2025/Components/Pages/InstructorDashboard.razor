@@ -1,0 +1,263 @@
+@page "/instructordashboard"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext _context
+@inject WorkloadSummaryService SummaryService
+@inject ISnackbar Snackbar
+@using MudBlazor
+
+<PageTitle>Instructor Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+ <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+ <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+ Instructor Dashboard
+ </MudText>
+
+ <MudCard Class="mb-4">
+ <MudCardContent>
+ <MudGrid>
+ <MudItem xs="12" md="3">
+ <MudSelect T="int?" Label="School" @bind-Value="schoolId" Clearable="true">
+ @foreach (var s in schools)
+ { <MudSelectItem Value="@((int?)s.Id)">@s.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="3">
+ <MudSelect T="int?" Label="Department" @bind-Value="departmentId" Clearable="true">
+ @foreach (var d in departments)
+ { <MudSelectItem Value="@((int?)d.Id)">@d.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="3">
+ <MudSelect T="int?" Label="Program" @bind-Value="programId" Clearable="true">
+ @foreach (var p in programs)
+ { <MudSelectItem Value="@((int?)p.Id)">@p.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="3">
+ <MudSelect T="int?" Label="Course" @bind-Value="courseId" Clearable="true">
+ @foreach (var c in courses)
+ { <MudSelectItem Value="@((int?)c.Id)">@c.Name</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="3">
+ <MudSelect T="int?" Label="Term" @bind-Value="termId" Clearable="true">
+ @foreach (var t in terms)
+ { <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName</MudSelectItem> }
+ </MudSelect>
+ </MudItem>
+ <MudItem xs="12" md="3" Class="d-flex align-center">
+ <MudSwitch T="bool" @bind-Checked="lastFiveYears" Color="Color.Info" Label="Last5 years" />
+ </MudItem>
+ <MudItem xs="12" md="6" Class="d-flex align-center justify-end">
+ <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
+ <MudButton Class="ml-2" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" Href="@GetExportHref()">Export CSV</MudButton>
+ </MudItem>
+ </MudGrid>
+ </MudCardContent>
+ </MudCard>
+
+ <MudGrid Class="mb-4">
+ <MudItem xs="12" sm="6" md="3">
+ <MudCard Elevation="2">
+ <MudCardContent>
+ <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+ <div>
+ <MudText Typo="Typo.body2" Color="Color.Secondary">Instructors</MudText>
+ <MudText Typo="Typo.h4">@totalInstructors</MudText>
+ </div>
+ <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large" Color="Color.Primary" />
+ </MudStack>
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ <MudItem xs="12" sm="6" md="3">
+ <MudCard Elevation="2">
+ <MudCardContent>
+ <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+ <div>
+ <MudText Typo="Typo.body2" Color="Color.Secondary">Assignments</MudText>
+ <MudText Typo="Typo.h4">@totalAssignments</MudText>
+ </div>
+ <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large" Color="Color.Secondary" />
+ </MudStack>
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ <MudItem xs="12" sm="6" md="3">
+ <MudCard Elevation="2">
+ <MudCardContent>
+ <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+ <div>
+ <MudText Typo="Typo.body2" Color="Color.Secondary">Total Hours</MudText>
+ <MudText Typo="Typo.h4">@totalHours.ToString("0.##")</MudText>
+ </div>
+ <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Large" Color="Color.Tertiary" />
+ </MudStack>
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ <MudItem xs="12" sm="6" md="3">
+ <MudCard Elevation="2">
+ <MudCardContent>
+ <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+ <div>
+ <MudText Typo="Typo.body2" Color="Color.Secondary">HR Pending</MudText>
+ <MudText Typo="Typo.h4">@hrPending</MudText>
+ </div>
+ <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Large" Color="Color.Warning" />
+ </MudStack>
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ </MudGrid>
+
+ <MudCard>
+ <MudCardHeader>
+ <CardHeaderContent>
+ <MudText Typo="Typo.h6">Instructor Workload Overview</MudText>
+ </CardHeaderContent>
+ </MudCardHeader>
+ <MudCardContent>
+ <MudTable T="Row" Items="@instructorRows" Hover="true" Dense="true">
+ <HeaderContent>
+ <MudTh>Instructor</MudTh>
+ <MudTh>Hours</MudTh>
+ <MudTh>Assignments</MudTh>
+ <MudTh>Alerts</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="Instructor">@context.DisplayName</MudTd>
+ <MudTd DataLabel="Hours">
+ <MudChip T="string" Color="@GetHoursColor(context.TotalHours)" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Timer">@context.TotalHours.ToString("0.##")</MudChip>
+ </MudTd>
+ <MudTd DataLabel="Assignments">@context.Assignments</MudTd>
+ <MudTd DataLabel="Alerts">
+ @if (context.HasMissingData)
+ { <MudTooltip Text="Missing program/course info"><MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" /></MudTooltip> }
+ @if (context.HasOverload)
+ { <MudTooltip Text="Potential overload"><MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" /></MudTooltip> }
+ @if (context.HRPendingCount >0)
+ { <MudTooltip Text="HR items pending"><MudIcon Icon="@Icons.Material.Filled.Flag" Color="Color.Warning" /></MudTooltip> }
+ </MudTd>
+ </RowTemplate>
+ </MudTable>
+ </MudCardContent>
+ </MudCard>
+</MudContainer>
+
+@code {
+ private List<School> schools = new();
+ private List<Department> departments = new();
+ private List<ProgramOfStudy> programs = new();
+ private List<Course> courses = new();
+ private List<Term> terms = new();
+
+ private int? schoolId, departmentId, programId, courseId, termId;
+ private bool lastFiveYears = false;
+
+ private int totalInstructors;
+ private int totalAssignments;
+ private decimal totalHours;
+ private int hrPending;
+
+ private List<Row> instructorRows = new();
+
+ protected override async Task OnInitializedAsync()
+ {
+ // Load options
+ schools = await _context.Schools.OrderBy(s => s.Name).ToListAsync();
+ departments = await _context.Departments.OrderBy(d => d.Name).ToListAsync();
+ programs = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courses = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
+ terms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ await Refresh();
+ }
+
+ private async Task Refresh()
+ {
+ var q = _context.FacultyWorkLoads
+ .Include(w => w.Faculty)
+ .Include(w => w.Course)
+ .Include(w => w.ProgramOfStudy)!
+ .ThenInclude(p => p!.Department)!
+ .ThenInclude(d => d!.School)
+ .Include(w => w.Term)
+ .AsQueryable();
+
+ if (termId.HasValue && !lastFiveYears)
+ q = q.Where(w => w.TermId == termId.Value);
+ if (lastFiveYears)
+ {
+ var cutoff = DateTime.Today.AddYears(-5);
+ q = q.Where(w => w.Term != null && w.Term.StartDate >= cutoff);
+ }
+ if (schoolId.HasValue)
+ q = q.Where(w => w.ProgramOfStudy != null && w.ProgramOfStudy.Department != null && w.ProgramOfStudy.Department.SchoolId == schoolId.Value);
+ if (departmentId.HasValue)
+ q = q.Where(w => w.ProgramOfStudy != null && w.ProgramOfStudy.DepartmentId == departmentId.Value);
+ if (programId.HasValue)
+ q = q.Where(w => w.ProgramOfStudyId == programId.Value);
+ if (courseId.HasValue)
+ q = q.Where(w => w.CourseId == courseId.Value);
+
+ var items = await q.ToListAsync();
+
+ totalAssignments = items.Count;
+ instructorRows = items
+ .GroupBy(w => new { w.FacultyEmail, Name = (w.Faculty != null ? ($"{w.Faculty.FirstName} {w.Faculty.LastName}") : w.FacultyEmail) })
+ .Select(g => new Row
+ {
+ Email = g.Key.FacultyEmail,
+ DisplayName = g.Key.Name,
+ TotalHours = g.Sum(i => EffectiveHours(i)),
+ Assignments = g.Count(),
+ HasMissingData = g.Any(i => i.ProgramOfStudyId == null || i.CourseId == null),
+ HRPendingCount = g.Count(i => !i.HRProcessed),
+ HasOverload = g.Sum(i => EffectiveHours(i)) >40m // simple default threshold
+ })
+ .OrderByDescending(r => r.TotalHours)
+ .ToList();
+
+ totalInstructors = instructorRows.Count;
+ totalHours = instructorRows.Sum(r => r.TotalHours);
+ hrPending = instructorRows.Sum(r => r.HRPendingCount);
+ }
+
+ private static decimal EffectiveHours(FacultyWorkLoad i)
+ => i.HoursAssigned * (i.PercentShare.HasValue ? (i.PercentShare.Value /100m) :1m);
+
+ private Color GetHoursColor(decimal h)
+ {
+ if (h >=40) return Color.Error;
+ if (h >=25) return Color.Warning;
+ if (h >=10) return Color.Info;
+ return Color.Success;
+ }
+
+ private string GetExportHref()
+ {
+ var qs = new List<string>();
+ if (termId.HasValue && !lastFiveYears) qs.Add($"termId={termId.Value}");
+ if (lastFiveYears) qs.Add("yearsBack=5");
+ if (schoolId.HasValue) qs.Add($"schoolId={schoolId.Value}");
+ if (departmentId.HasValue) qs.Add($"departmentId={departmentId.Value}");
+ if (programId.HasValue) qs.Add($"programId={programId.Value}");
+ if (courseId.HasValue) qs.Add($"courseId={courseId.Value}");
+ var query = string.Join("&", qs);
+ return $"/api/reports/instructors" + (string.IsNullOrEmpty(query) ? string.Empty : $"?{query}");
+ }
+
+ private class Row
+ {
+ public string Email { get; set; } = string.Empty;
+ public string DisplayName { get; set; } = string.Empty;
+ public decimal TotalHours { get; set; }
+ public int Assignments { get; set; }
+ public bool HasMissingData { get; set; }
+ public bool HasOverload { get; set; }
+ public int HRPendingCount { get; set; }
+ }
+}
