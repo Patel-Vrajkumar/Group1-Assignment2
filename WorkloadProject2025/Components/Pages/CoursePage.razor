@@ -1,52 +1,252 @@
 ﻿@page "/CoursePage"
 @inject CourseService courseService
 @inject ProgramsOfStudyService posservice
-<CoursesForm courseservice="courseService" POS="pos" OnSaved="Save"></CoursesForm>
+@inject ISnackbar Snackbar
+@using WorkloadProject2025.Data.Models
 
+<PageTitle>Courses</PageTitle>
 
-<MudCard Class="mx-auto mt-6" Style="max-width: 450px;">
-    <MudCardHeader>
-        <MudText Typo="Typo.h6" Class="font-semibold">Current Programs</MudText>
-    </MudCardHeader>
-
-    <MudCardContent>
-        <MudStack Spacing="2">
-            @foreach (var c in courses)
-            {
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">@c.Name</MudText>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary">Courses Details</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            }
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Book" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Courses</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Manage academic courses</MudText>
+                </div>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddDialog">
+                    Add Course
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Secondary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadData">
+                    Refresh
+                </MudButton>
+            </MudStack>
         </MudStack>
-    </MudCardContent>
+    </MudPaper>
 
-</MudCard>
+    <MudCard Class="mt-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5">Courses List</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total: @courses.Count course(s)</MudText>
+                    </div>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (courses.Any())
+            {
+                <MudGrid Spacing="3">
+                    @foreach (var course in courses.OrderBy(c => c.Name))
+                    {
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="4" Class="course-card" Style="height: 100%;">
+                                <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Book" Size="Size.Large" Style="color: white;" />
+                                            <div style="flex: 1;">
+                                                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">@course.Name</MudText>
+                                                @if (!string.IsNullOrWhiteSpace(course.CourseCode))
+                                                {
+                                                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                                        Code: @course.CourseCode
+                                                    </MudText>
+                                                }
+                                            </div>
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #667eea;">
+                                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" /> @course.Hours hour(s)
+                                            </MudText>
+                                        </MudPaper>
+                                        
+                                        @if (course.ProgramOfStudy != null)
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: #666;">
+                                                <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" /> Program: @course.ProgramOfStudy.Name
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Color="Color.Error" 
+                                                   OnClick="() => DeleteCourse(course.Id)" />
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <MudText Typo="Typo.body1">No courses found. Add a course using the button above.</MudText>
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+<MudDialog @bind-IsVisible="addDialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Book" Class="mr-1" />
+            Add New Course
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField Label="Course Name"
+                          @bind-Value="newCourse.Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Book"
+                          AdornmentColor="Color.Primary" />
+
+            <MudTextField Label="Course Code"
+                          @bind-Value="newCourse.CourseCode"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Tag"
+                          AdornmentColor="Color.Primary"
+                          HelperText="e.g., CS101" />
+
+            <MudNumericField T="int"
+                             Label="Hours"
+                             @bind-Value="newCourse.Hours"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             Min="0"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.AccessTime"
+                             AdornmentColor="Color.Primary" />
+
+            <MudSelect T="int"
+                       Label="Program of Study"
+                       @bind-Value="newCourse.ProgramOfStudyId"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Category"
+                       AdornmentColor="Color.Primary">
+                @foreach (var program in pos)
+                {
+                    <MudSelectItem Value="@program.Id">@program.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseAddDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="SaveCourse" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .course-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
 @code {
-
-    List<Course> courses = new List<Course>();
-
-    List<ProgramOfStudy> pos = new();
+    private List<Course> courses = new();
+    private List<ProgramOfStudy> pos = new();
+    private Course newCourse = new();
+    private bool addDialogOpen = false;
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
     protected override async Task OnInitializedAsync()
     {
-        courses = await courseService.GetAllAsync();
-        pos = await posservice.GetAllAsync();
+        await LoadData();
     }
 
-    public async Task Save()
+    private async Task LoadData()
     {
-        //Refresh the list after a save
         courses = await courseService.GetAllAsync();
+        pos = await posservice.GetAllAsync();
         StateHasChanged();
+    }
+
+    private void OpenAddDialog()
+    {
+        newCourse = new Course();
+        addDialogOpen = true;
+    }
+
+    private void CloseAddDialog()
+    {
+        addDialogOpen = false;
+        newCourse = new Course();
+    }
+
+    private async Task SaveCourse()
+    {
+        if (string.IsNullOrWhiteSpace(newCourse.Name))
+        {
+            Snackbar.Add("Please enter a course name", Severity.Warning);
+            return;
+        }
+
+        if (newCourse.ProgramOfStudyId == 0)
+        {
+            Snackbar.Add("Please select a program of study", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await courseService.AddAsync(newCourse);
+            Snackbar.Add($"Course '{newCourse.Name}' added successfully!", Severity.Success);
+            CloseAddDialog();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding course: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteCourse(int id)
+    {
+        try
+        {
+            var success = await courseService.DeleteAsync(id);
+            if (success)
+            {
+                Snackbar.Add("Course deleted successfully!", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete course", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting course: {ex.Message}", Severity.Error);
+        }
     }
 }

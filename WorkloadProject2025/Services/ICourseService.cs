@@ -7,5 +7,6 @@ namespace WorkloadProject2025.Services
         Task<Course> AddAsync(Course course, CancellationToken cancellationToken = default);
         Task<List<Course>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<Course?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
     }
 }

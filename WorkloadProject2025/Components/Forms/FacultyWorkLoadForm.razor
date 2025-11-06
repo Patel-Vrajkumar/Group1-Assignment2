@@ -1,6 +1,7 @@
 ﻿@page "/facultyworkloadform"
 @using WorkloadProject2025.Data
 @using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
 @using MudBlazor
 @inject ApplicationDbContext _context
 @inject ISnackbar Snackbar
@@ -20,16 +21,55 @@
 
     <MudCardContent>
         <MudGrid Spacing="3">
-            <MudItem xs="12">
-                <MudTextField Label="Faculty Email"
-                              @bind-Value="facultyWorkLoad.FacultyEmail"
-                              Variant="Variant.Outlined"
-                              Required="true"
-                              Immediate="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Email"
-                              AdornmentColor="Color.Primary"
-                              HelperText="Enter the faculty member's email address" />
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string"
+                           Label="Faculty Member"
+                           @bind-Value="facultyWorkLoad.FacultyEmail"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Person"
+                           AdornmentColor="Color.Primary"
+                           HelperText="Select faculty member">
+                    @foreach (var faculty in facultyList)
+                    {
+                        <MudSelectItem Value="@faculty.Email">@faculty.FirstName @faculty.LastName (@faculty.Email)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           Label="Course"
+                           @bind-Value="facultyWorkLoad.CourseId"
+                           Variant="Variant.Outlined"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Book"
+                           AdornmentColor="Color.Primary"
+                           HelperText="Select course (optional)"
+                           Clearable="true">
+                    @foreach (var course in courseList)
+                    {
+                        <MudSelectItem Value="@((int?)course.Id)">@course.Name (@course.Hours hrs)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int"
+                           Label="Term"
+                           @bind-Value="facultyWorkLoad.TermId"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                           AdornmentColor="Color.Primary"
+                           HelperText="Select term">
+                    @foreach (var term in termList)
+                    {
+                        <MudSelectItem Value="@term.Id">@term.IntakeName (@term.Year)</MudSelectItem>
+                    }
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
@@ -63,6 +103,16 @@
                                  HelperText="Number of hours for this assignment" />
             </MudItem>
 
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Date Assigned"
+                               @bind-Date="facultyWorkLoad.DateAssigned"
+                               Variant="Variant.Outlined"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                               AdornmentColor="Color.Primary"
+                               HelperText="When this workload was assigned" />
+            </MudItem>
+
             <MudItem xs="12">
                 <MudTextField Label="Description"
                               @bind-Value="facultyWorkLoad.Description"
@@ -72,16 +122,6 @@
                               AdornmentIcon="@Icons.Material.Filled.Description"
                               AdornmentColor="Color.Primary"
                               HelperText="Optional: Add details about this workload assignment" />
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Date Assigned"
-                               @bind-Date="facultyWorkLoad.DateAssigned"
-                               Variant="Variant.Outlined"
-                               Adornment="Adornment.Start"
-                               AdornmentIcon="@Icons.Material.Filled.CalendarToday"
-                               AdornmentColor="Color.Primary"
-                               HelperText="When this workload was assigned" />
             </MudItem>
         </MudGrid>
     </MudCardContent>
@@ -112,31 +152,42 @@
         DateAssigned = DateTime.Now
     };
 
-    private void Cancel()
+    private List<Faculty> facultyList = new();
+    private List<Course> courseList = new();
+    private List<Term> termList = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        facultyWorkLoad = new FacultyWorkLoad { DateAssigned = DateTime.Now };
+        await LoadDropdownData();
     }
 
-    private bool IsValidEmail(string email)
+    private async Task LoadDropdownData()
     {
-        if (string.IsNullOrWhiteSpace(email))
-            return false;
+        facultyList = await _context.Faculty.OrderBy(f => f.LastName).ToListAsync();
+        courseList = await _context.Courses.Include(c => c.ProgramOfStudy).OrderBy(c => c.Name).ToListAsync();
+        termList = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
         
-        try
+        // Set default term if available
+        if (termList.Any() && facultyWorkLoad.TermId == 0)
         {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
+            facultyWorkLoad.TermId = termList.First().Id;
         }
-        catch
-        {
-            return false;
-        }
+    }
+
+    private void Cancel()
+    {
+        facultyWorkLoad = new FacultyWorkLoad 
+        { 
+            DateAssigned = DateTime.Now,
+            TermId = termList.Any() ? termList.First().Id : 0
+        };
     }
 
     private bool IsFormValid()
     {
         return !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
-               IsValidEmail(facultyWorkLoad.FacultyEmail) &&
+               facultyList.Any(f => f.Email == facultyWorkLoad.FacultyEmail) &&
+               facultyWorkLoad.TermId > 0 &&
                facultyWorkLoad.HoursAssigned > 0;
     }
 

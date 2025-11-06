@@ -35,13 +35,24 @@ namespace WorkloadProject2025.Services
         public Task<List<ProgramOfStudy>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             // Empty list should be okay
-            return _context.ProgramsOfStudy.ToListAsync();
+            return _context.ProgramsOfStudy.Include(p => p.Department).Include(p => p.Courses).ToListAsync();
         }
 
         public Task<ProgramOfStudy?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             //LINQ is a language that lets you write queries in C#
             return _context.ProgramsOfStudy.FirstOrDefaultAsync(program => program.Id == id);
+        }
+
+        public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var program = await _context.ProgramsOfStudy.FindAsync(new object[] { id }, cancellationToken);
+            if (program == null)
+                return false;
+
+            _context.ProgramsOfStudy.Remove(program);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
         }
     }
 }
