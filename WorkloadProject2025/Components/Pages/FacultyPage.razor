@@ -2,7 +2,9 @@
 @using WorkloadProject2025.Data
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext _context
+@inject IFacultyService facultyService
+@inject IFacultyWorkLoadService workloadService
+@inject ProgramsOfStudyService programService
 @inject IWorkloadCalculationService calc
 
 <PageTitle>Faculty Profile & Workload</PageTitle>
@@ -26,7 +28,14 @@
  </MudStack>
  </MudPaper>
 
- <FacultyForm OnSaved="LoadData"></FacultyForm>
+ @if (isLoading)
+ {
+     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+ }
+ else
+ {
+     <FacultyForm OnSaved="LoadData"></FacultyForm>
+ }
 
  <MudCard Class="mt-6" Elevation="2">
  <MudCardHeader>
@@ -202,6 +211,7 @@
  private Dictionary<string, Dictionary<int, decimal>> programSubtotalCache = new();
  private Dictionary<int, string> programsById = new();
  private int? currentTermId;
+ private bool isLoading = true;
 
  protected override async Task OnInitializedAsync()
  {
@@ -210,17 +220,15 @@
 
  private async Task LoadData()
  {
- facultyList = await _context.Faculty.ToListAsync();
- facultyWorkloads = await _context.FacultyWorkLoads
- .Include(w => w.Course)
- .Include(w => w.Term)
- .ToListAsync();
+ facultyList = await facultyService.GetAllAsync();
+ facultyWorkloads = await workloadService.GetAllAsync();
 
  // choose latest term if exists
  currentTermId = facultyWorkloads.OrderByDescending(w => w.TermId).FirstOrDefault()?.TermId;
 
  // preload program names
- programsById = await _context.ProgramsOfStudy.ToDictionaryAsync(p => p.Id, p => p.Name);
+ var programs = await programService.GetAllAsync();
+ programsById = programs.ToDictionary(p => p.Id, p => p.Name);
 
  capacityCache.Clear();
  programSubtotalCache.Clear();
@@ -233,6 +241,7 @@
  }
  }
  UpdateFilteredFaculty();
+ isLoading = false;
  StateHasChanged();
  }
 
