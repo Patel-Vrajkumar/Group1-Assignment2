@@ -22,6 +22,7 @@ namespace WorkloadProject2025.Data
         public DbSet<InstructorPreference> InstructorPreferences { get; set; }
         public DbSet<FacultyPreferredCourse> FacultyPreferredCourses { get; set; }
         public DbSet<InstructorProgramAssignment> InstructorProgramAssignments { get; set; }
+        public DbSet<CourseSchedule> CourseSchedules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +36,11 @@ namespace WorkloadProject2025.Data
             // Configure precision for Faculty MaxTeachingHours
             modelBuilder.Entity<Faculty>()
                 .Property(f => f.MaxTeachingHours)
+                .HasPrecision(18, 2);
+
+            // Configure precision for CourseAssignment AssignmentPercentage
+            modelBuilder.Entity<CourseAssignment>()
+                .Property(ca => ca.AssignmentPercentage)
                 .HasPrecision(18, 2);
 
             // Relationships and keys
