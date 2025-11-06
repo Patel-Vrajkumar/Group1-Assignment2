@@ -1,0 +1,391 @@
+@page "/instructorworkloaddashboard"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext _context
+@inject ISnackbar Snackbar
+
+<PageTitle>Instructor Workload Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <!-- Header -->
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">Instructor Workload Dashboard</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">View faculty workload, schedules, and performance metrics</MudText>
+                </div>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadData">
+                    Refresh
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Summary Cards -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Faculty</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;">@facultyList.Count</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Full-Time</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;" Color="Color.Success">@facultyList.Count(f => f.EmploymentCategory == EmploymentCategory.FullTime)</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Large" Color="Color.Success" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Part-Time</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;" Color="Color.Info">@facultyList.Count(f => f.EmploymentCategory == EmploymentCategory.PartTime)</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.WorkOutline" Size="Size.Large" Color="Color.Info" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Overloaded</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;" Color="Color.Error">@GetOverloadedCount()</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Large" Color="Color.Error" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Faculty Workload Table with Status -->
+    <MudCard Class="mb-4" Elevation="3">
+        <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Faculty Workload Overview</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Items="@GetFacultyWorkloadSummary()" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true">
+                <HeaderContent>
+                    <MudTh>Faculty Name</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Employment Type</MudTh>
+                    <MudTh>Total Hours</MudTh>
+                    <MudTh>Max Hours</MudTh>
+                    <MudTh>Number of Classes</MudTh>
+                    <MudTh>Total Students</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Faculty Name">@context.FullName</MudTd>
+                    <MudTd DataLabel="Email">@context.Email</MudTd>
+                    <MudTd DataLabel="Employment Type">
+                        <MudChip T="string" Size="Size.Small" Color="@GetEmploymentTypeColor(context.EmploymentType)">
+                            @context.EmploymentType
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Total Hours">@context.TotalHours.ToString("F1")</MudTd>
+                    <MudTd DataLabel="Max Hours">@context.MaxHours.ToString("F1")</MudTd>
+                    <MudTd DataLabel="Number of Classes">@context.NumberOfClasses</MudTd>
+                    <MudTd DataLabel="Total Students">@context.TotalStudents</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Size="Size.Small" Color="@GetWorkloadStatusColor(context.WorkloadStatus)">
+                            @context.WorkloadStatus
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Calendar View -->
+    <MudCard Elevation="3">
+        <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <CardHeaderContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Weekly Schedule Calendar</MudText>
+                    <MudSelect T="string" @bind-Value="selectedTerm" Label="Select Term" Variant="Variant.Outlined" 
+                               Dense="true" Style="background-color: white; border-radius: 4px; min-width: 200px;">
+                        @foreach (var term in terms)
+                        {
+                            <MudSelectItem Value="@term.Name">@term.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <div style="overflow-x: auto;">
+                <MudSimpleTable Style="min-width: 1200px;" Hover="true" Bordered="true" Dense="true" Striped="true">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px; position: sticky; left: 0; background: white; z-index: 10;">Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var timeSlot in GetTimeSlots())
+                        {
+                            <tr>
+                                <td style="font-weight: 600; position: sticky; left: 0; background: #f5f5f5; z-index: 10;">@FormatTimeSlot(timeSlot)</td>
+                                @for (int day = 1; day <= 5; day++)
+                                {
+                                    var dayOfWeek = (DayOfWeek)day;
+                                    var schedulesForSlot = GetSchedulesForTimeSlot(timeSlot, dayOfWeek);
+                                    
+                                    <td style="vertical-align: top; padding: 4px;">
+                                        @foreach (var schedule in schedulesForSlot)
+                                        {
+                                            <MudPaper Class="pa-2 mb-1" Elevation="2" 
+                                                      Style="@GetScheduleStyle(schedule)">
+                                                <MudText Typo="Typo.caption" Style="font-weight: 700; color: white;">
+                                                    @schedule.Course?.CourseCode
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Style="color: white;">
+                                                    @FormatTime(schedule.StartTime) - @FormatTime(schedule.EndTime)
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Style="color: white;">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Room" Size="Size.Small" /> @schedule.Room
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Style="color: white;">
+                                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" /> @schedule.EnrolledStudents students
+                                                </MudText>
+                                                @if (!string.IsNullOrEmpty(schedule.InstructorEmail))
+                                                {
+                                                    var instructor = facultyList.FirstOrDefault(f => f.Email == schedule.InstructorEmail);
+                                                    if (instructor != null)
+                                                    {
+                                                        <MudText Typo="Typo.caption" Style="color: white;">
+                                                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> @instructor.FirstName @instructor.LastName
+                                                        </MudText>
+                                                    }
+                                                }
+                                                <MudChip T="string" Size="Size.Small" Style="background-color: rgba(255,255,255,0.3); color: white; font-size: 0.7rem;">
+                                                    @schedule.CourseType
+                                                </MudChip>
+                                            </MudPaper>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private List<Faculty> facultyList = new();
+    private List<FacultyWorkLoad> workloadList = new();
+    private List<CourseSchedule> scheduleList = new();
+    private List<Term> terms = new();
+    private string selectedTerm = "Fall 2024";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        facultyList = await _context.Faculty
+            .Include(f => f.Department)
+            .ToListAsync();
+
+        workloadList = await _context.FacultyWorkLoads
+            .Include(w => w.Course)
+            .Include(w => w.Term)
+            .ToListAsync();
+
+        scheduleList = await _context.CourseSchedules
+            .Include(s => s.Course)
+                .ThenInclude(c => c.ProgramOfStudy)
+            .Include(s => s.Term)
+            .Include(s => s.Instructor)
+            .ToListAsync();
+
+        terms = await _context.Terms.OrderBy(t => t.StartDate).ToListAsync();
+        
+        if (terms.Any() && string.IsNullOrEmpty(selectedTerm))
+        {
+            selectedTerm = terms.First().Name;
+        }
+
+        StateHasChanged();
+    }
+
+    private class FacultyWorkloadSummary
+    {
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string EmploymentType { get; set; } = "";
+        public decimal TotalHours { get; set; }
+        public decimal MaxHours { get; set; }
+        public int NumberOfClasses { get; set; }
+        public int TotalStudents { get; set; }
+        public string WorkloadStatus { get; set; } = "";
+    }
+
+    private List<FacultyWorkloadSummary> GetFacultyWorkloadSummary()
+    {
+        var summaries = new List<FacultyWorkloadSummary>();
+
+        foreach (var faculty in facultyList)
+        {
+            var facultyWorkloads = workloadList.Where(w => w.FacultyEmail == faculty.Email).ToList();
+            var facultySchedules = scheduleList.Where(s => s.InstructorEmail == faculty.Email).ToList();
+            
+            var totalHours = facultyWorkloads.Sum(w => w.HoursAssigned);
+            var numberOfClasses = facultySchedules.Select(s => s.CourseId).Distinct().Count();
+            var totalStudents = facultySchedules.Sum(s => s.EnrolledStudents);
+            
+            string status;
+            if (totalHours > faculty.MaxTeachingHours)
+            {
+                status = "Overloaded";
+            }
+            else if (totalHours < faculty.MaxTeachingHours * 0.7m)
+            {
+                status = "Underutilized";
+            }
+            else
+            {
+                status = "Normal";
+            }
+
+            summaries.Add(new FacultyWorkloadSummary
+            {
+                FullName = $"{faculty.FirstName} {faculty.LastName}",
+                Email = faculty.Email,
+                EmploymentType = faculty.EmploymentCategory.ToString(),
+                TotalHours = totalHours,
+                MaxHours = faculty.MaxTeachingHours,
+                NumberOfClasses = numberOfClasses,
+                TotalStudents = totalStudents,
+                WorkloadStatus = status
+            });
+        }
+
+        return summaries.OrderByDescending(s => s.TotalHours).ToList();
+    }
+
+    private int GetOverloadedCount()
+    {
+        return GetFacultyWorkloadSummary().Count(s => s.WorkloadStatus == "Overloaded");
+    }
+
+    private Color GetWorkloadStatusColor(string status)
+    {
+        return status switch
+        {
+            "Overloaded" => Color.Error,
+            "Underutilized" => Color.Warning,
+            "Normal" => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetEmploymentTypeColor(string type)
+    {
+        return type switch
+        {
+            "FullTime" => Color.Success,
+            "PartTime" => Color.Info,
+            "Adjunct" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private List<TimeSpan> GetTimeSlots()
+    {
+        var slots = new List<TimeSpan>();
+        for (int hour = 8; hour <= 17; hour++)
+        {
+            slots.Add(new TimeSpan(hour, 0, 0));
+        }
+        return slots;
+    }
+
+    private List<CourseSchedule> GetSchedulesForTimeSlot(TimeSpan timeSlot, DayOfWeek dayOfWeek)
+    {
+        var selectedTermObj = terms.FirstOrDefault(t => t.Name == selectedTerm);
+        if (selectedTermObj == null) return new List<CourseSchedule>();
+
+        return scheduleList
+            .Where(s => s.TermId == selectedTermObj.Id &&
+                       s.DayOfWeek == dayOfWeek &&
+                       s.StartTime <= timeSlot &&
+                       s.EndTime > timeSlot)
+            .ToList();
+    }
+
+    private string GetScheduleStyle(CourseSchedule schedule)
+    {
+        var colors = new[] 
+        { 
+            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+            "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+            "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+            "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+            "linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
+        };
+        
+        var colorIndex = Math.Abs(schedule.CourseId.GetHashCode()) % colors.Length;
+        return $"background: {colors[colorIndex]}; color: white; border-radius: 8px;";
+    }
+    
+    private string FormatTimeSlot(TimeSpan time)
+    {
+        var hours = time.Hours;
+        var minutes = time.Minutes;
+        var period = hours >= 12 ? "PM" : "AM";
+        var displayHours = hours > 12 ? hours - 12 : (hours == 0 ? 12 : hours);
+        return $"{displayHours:D2}:{minutes:D2} {period}";
+    }
+    
+    private string FormatTime(TimeSpan time)
+    {
+        var hours = time.Hours;
+        var minutes = time.Minutes;
+        var displayHours = hours > 12 ? hours - 12 : (hours == 0 ? 12 : hours);
+        return $"{displayHours:D2}:{minutes:D2}";
+    }
+}
