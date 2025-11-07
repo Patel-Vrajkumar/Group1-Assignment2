@@ -24,9 +24,10 @@
  <MudItem xs="12" sm="6">
  <MudSelect Label="Faculty"
  T="string"
- @bind-Value="facultyWorkLoad.FacultyEmail"
+ @bind-Value="selectedFacultyEmail"
  Variant="Variant.Outlined"
  Required="true"
+ Clearable="false"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.Person"
  AdornmentColor="Color.Primary">
@@ -39,16 +40,17 @@
 
  <MudItem xs="12" sm="6">
  <MudSelect Label="Term"
- T="int"
- @bind-Value="facultyWorkLoad.TermId"
+ T="int?"
+ @bind-Value="selectedTermId"
  Variant="Variant.Outlined"
  Required="true"
+ Clearable="false"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.DateRange"
  AdornmentColor="Color.Primary">
  @foreach (var t in termOptions)
  {
- <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem>
+ <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -239,6 +241,9 @@
  DateAssigned = DateTime.Now
  };
 
+ private string? selectedFacultyEmail;
+ private int? selectedTermId;
+
  private List<Faculty> facultyOptions = new();
  private List<Term> termOptions = new();
  private List<Course> courseOptions = new();
@@ -257,6 +262,8 @@
  private void Cancel()
  {
  facultyWorkLoad = new FacultyWorkLoad { DateAssigned = DateTime.Now };
+ selectedFacultyEmail = null;
+ selectedTermId = null;
  }
 
  private bool IsValidEmail(string email)
@@ -277,10 +284,11 @@
 
  private bool IsFormValid()
  {
- var valid = !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
- IsValidEmail(facultyWorkLoad.FacultyEmail) &&
- facultyWorkLoad.TermId >0 &&
- facultyWorkLoad.HoursAssigned >0;
+ var valid = !string.IsNullOrWhiteSpace(selectedFacultyEmail) &&
+ IsValidEmail(selectedFacultyEmail) &&
+ selectedTermId.HasValue &&
+ selectedTermId.Value > 0 &&
+ facultyWorkLoad.HoursAssigned > 0;
  if (facultyWorkLoad.IsCoverage && !string.IsNullOrWhiteSpace(facultyWorkLoad.CoveredForFacultyEmail))
  {
  valid = valid && IsValidEmail(facultyWorkLoad.CoveredForFacultyEmail);
@@ -298,6 +306,10 @@
 
  try
  {
+ // Assign selected values to the model
+ facultyWorkLoad.FacultyEmail = selectedFacultyEmail!;
+ facultyWorkLoad.TermId = selectedTermId!.Value;
+
  if (facultyWorkLoad.HRProcessed && facultyWorkLoad.HRProcessedDate == null)
  {
  facultyWorkLoad.HRProcessedDate = DateTime.Now;

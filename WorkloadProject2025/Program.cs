@@ -34,6 +34,7 @@ builder.Services.AddScoped<TermService>();
 builder.Services.AddScoped<DepartmentService>();
 builder.Services.AddScoped<FacultyWorkLoadService>();
 builder.Services.AddScoped<WorkloadSummaryService>();
+builder.Services.AddScoped<IWorkloadCopyService, WorkloadCopyService>();
 
 builder.Services.AddAuthentication(options =>
 {
