@@ -53,10 +53,10 @@
                               Label="Department" 
                               Variant="Variant.Outlined"
                               Clearable="true">
-                        <MudSelectItem Value="@((int?)null)">All Departments</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)null)">All Departments</MudSelectItem>
                         @foreach (var dept in departments)
                         {
-                            <MudSelectItem Value="@dept.Id">@dept.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)dept.Id)">@dept.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -66,10 +66,10 @@
                               Label="Status" 
                               Variant="Variant.Outlined"
                               Clearable="true">
-                        <MudSelectItem Value="@((EmploymentStatus?)null)">All Statuses</MudSelectItem>
+                        <MudSelectItem T="EmploymentStatus?" Value="@((EmploymentStatus?)null)">All Statuses</MudSelectItem>
                         @foreach (EmploymentStatus status in Enum.GetValues(typeof(EmploymentStatus)))
                         {
-                            <MudSelectItem Value="@((EmploymentStatus?)status)">@status.ToString()</MudSelectItem>
+                            <MudSelectItem T="EmploymentStatus?" Value="@((EmploymentStatus?)status)">@status.ToString()</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
