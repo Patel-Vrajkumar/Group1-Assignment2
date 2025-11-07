@@ -3,6 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @using MudBlazor
+@using System.ComponentModel.DataAnnotations
 @inject ApplicationDbContext _context
 @inject ISnackbar Snackbar
 
@@ -20,110 +21,166 @@
     </MudCardHeader>
 
     <MudCardContent>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" sm="6">
-                <MudSelect T="string"
-                           Label="Faculty Member"
-                           @bind-Value="facultyWorkLoad.FacultyEmail"
-                           Variant="Variant.Outlined"
-                           Required="true"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.Person"
-                           AdornmentColor="Color.Primary"
-                           HelperText="Select faculty member">
-                    @foreach (var faculty in facultyList)
+        <EditForm Model="@workloadModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="Faculty" 
+                                     Label="Faculty Member *"
+                                     @bind-Value="selectedFaculty"
+                                     SearchFunc="@SearchFaculty"
+                                     ToStringFunc="@(f => f != null ? $"{f.FirstName} {f.LastName}" : "")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Person"
+                                     AdornmentColor="Color.Primary"
+                                     HelperText="Search and select faculty member"
+                                     Disabled="@isSaving">
+                        <ItemTemplate Context="faculty">
+                            <div>
+                                <MudText Typo="Typo.body2">@faculty.FirstName @faculty.LastName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@faculty.Email - @faculty.EmploymentCategory</MudText>
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                    @if (selectedFaculty != null)
                     {
-                        <MudSelectItem Value="@faculty.Email">@faculty.FirstName @faculty.LastName (@faculty.Email)</MudSelectItem>
+                        <MudText Typo="Typo.caption" Color="@GetFacultyLoadColor()">
+                            Current term hours: @facultyCurrentHours.ToString("F1") / @selectedFaculty.MaxTeachingHours
+                        </MudText>
                     }
-                </MudSelect>
-            </MudItem>
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           Label="Course"
-                           @bind-Value="facultyWorkLoad.CourseId"
-                           Variant="Variant.Outlined"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.Book"
-                           AdornmentColor="Color.Primary"
-                           HelperText="Select course (optional)"
-                           Clearable="true">
-                    @foreach (var course in courseList)
-                    {
-                        <MudSelectItem Value="@((int?)course.Id)">@course.Name (@course.Hours hrs)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="Course" 
+                                     Label="Course *"
+                                     @bind-Value="selectedCourse"
+                                     SearchFunc="@SearchCourses"
+                                     ToStringFunc="@(c => c != null ? c.Name : "")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Book"
+                                     AdornmentColor="Color.Primary"
+                                     HelperText="Search and select course"
+                                     Disabled="@isSaving">
+                        <ItemTemplate Context="course">
+                            <div>
+                                <MudText Typo="Typo.body2">@course.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @(string.IsNullOrWhiteSpace(course.CourseCode) ? "" : $"{course.CourseCode} - ")@course.Hours hours
+                                </MudText>
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           Label="Term"
-                           @bind-Value="facultyWorkLoad.TermId"
-                           Variant="Variant.Outlined"
-                           Required="true"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                           AdornmentColor="Color.Primary"
-                           HelperText="Select term">
-                    @foreach (var term in termList)
-                    {
-                        <MudSelectItem Value="@term.Id">@term.IntakeName (@term.Year)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudSelect T="Workload"
-                           Label="Workload Type"
-                           @bind-Value="facultyWorkLoad.Workload"
-                           Variant="Variant.Outlined"
-                           Required="true"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.Category"
-                           AdornmentColor="Color.Primary"
-                           HelperText="Select the type of workload">
-                    @foreach (Workload type in Enum.GetValues(typeof(Workload)))
-                    {
-                        <MudSelectItem Value="@type">@type.ToString().Replace("_", " ")</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="decimal"
-                                 Label="Hours Assigned"
-                                 @bind-Value="facultyWorkLoad.HoursAssigned"
-                                 Variant="Variant.Outlined"
-                                 Required="true"
-                                 Min="0"
-                                 Max="168"
-                                 Adornment="Adornment.End"
-                                 AdornmentIcon="@Icons.Material.Filled.Timer"
-                                 AdornmentColor="Color.Primary"
-                                 HelperText="Number of hours for this assignment" />
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Date Assigned"
-                               @bind-Date="facultyWorkLoad.DateAssigned"
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int"
+                               Label="Term *"
+                               Value="@workloadModel.TermId"
+                               ValueChanged="@OnTermChanged"
                                Variant="Variant.Outlined"
+                               Required="true"
                                Adornment="Adornment.Start"
-                               AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                               AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
                                AdornmentColor="Color.Primary"
-                               HelperText="When this workload was assigned" />
-            </MudItem>
+                               HelperText="Select academic term"
+                               Disabled="@isSaving">
+                        @foreach (var term in termList)
+                        {
+                            <MudSelectItem Value="@term.Id">@term.IntakeName (@term.Year)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
 
-            <MudItem xs="12">
-                <MudTextField Label="Description"
-                              @bind-Value="facultyWorkLoad.Description"
-                              Variant="Variant.Outlined"
-                              Lines="3"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Description"
-                              AdornmentColor="Color.Primary"
-                              HelperText="Optional: Add details about this workload assignment" />
-            </MudItem>
-        </MudGrid>
+                <MudItem xs="12" sm="6">
+                    @if (selectedFaculty != null)
+                    {
+                        <MudChip T="string" 
+                                 Icon="@Icons.Material.Filled.Work" 
+                                 Color="@GetEmploymentCategoryColor(selectedFaculty.EmploymentCategory)" 
+                                 Size="Size.Medium">
+                            @selectedFaculty.EmploymentCategory.ToString()
+                        </MudChip>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Employment Type</MudText>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal"
+                                     Label="Hours Assigned *"
+                                     @bind-Value="workloadModel.HoursAssigned"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="MinimumHours"
+                                     Max="168"
+                                     Step="0.5m"
+                                     Adornment="Adornment.End"
+                                     AdornmentIcon="@Icons.Material.Filled.Timer"
+                                     AdornmentColor="@GetHoursColor()"
+                                     HelperText="Must be greater than 0"
+                                     Disabled="@isSaving" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Workload"
+                               Label="Workload Type *"
+                               @bind-Value="workloadModel.Workload"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Category"
+                               AdornmentColor="Color.Primary"
+                               HelperText="Select the type of workload"
+                               Disabled="@isSaving">
+                        @foreach (Workload type in Enum.GetValues(typeof(Workload)))
+                        {
+                            <MudSelectItem Value="@type">@type.ToString().Replace("_", " ")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Description"
+                                  @bind-Value="workloadModel.Description"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Description"
+                                  AdornmentColor="Color.Primary"
+                                  HelperText="Optional: Add details about this workload assignment"
+                                  Disabled="@isSaving" />
+                </MudItem>
+
+                @if (validationErrors.Any())
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Elevation="2">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">Validation Errors:</MudText>
+                            @foreach (var error in validationErrors)
+                            {
+                                <MudText Typo="Typo.body2">• @error</MudText>
+                            }
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @if (validationWarnings.Any())
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Elevation="2">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">Warnings:</MudText>
+                            @foreach (var warning in validationWarnings)
+                            {
+                                <MudText Typo="Typo.body2">• @warning</MudText>
+                            }
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </EditForm>
     </MudCardContent>
 
     <MudCardActions Class="d-flex justify-end pa-4" Style="background-color: #f5f5f5; margin: 16px -16px -16px -16px; border-radius: 0 0 4px 4px;">
@@ -131,15 +188,24 @@
                    Color="Color.Secondary" 
                    StartIcon="@Icons.Material.Filled.Close"
                    Class="mr-2"
-                   OnClick="Cancel">
+                   OnClick="Cancel"
+                   Disabled="@isSaving">
             Cancel
         </MudButton>
         <MudButton Color="Color.Primary" 
                    Variant="Variant.Filled" 
                    StartIcon="@Icons.Material.Filled.Save"
-                   Disabled="@(!IsFormValid())"
+                   Disabled="@(!IsFormValid() || isSaving)"
                    OnClick="Save">
-            Save Workload
+            @if (isSaving)
+            {
+                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Save Workload</span>
+            }
         </MudButton>
     </MudCardActions>
 </MudCard>
@@ -147,14 +213,30 @@
 @code {
     [Parameter] public EventCallback OnSaved { get; set; }
 
-    private FacultyWorkLoad facultyWorkLoad = new()
+    // Constants for validation
+    private const decimal MinimumHours = 0.1m;
+    private const decimal MaximumReasonableHours = 40m;
+
+    // Model with validation
+    private WorkloadFormModel workloadModel = new()
     {
         DateAssigned = DateTime.Now
     };
 
+    // UI State
+    private Faculty? selectedFaculty;
+    private Course? selectedCourse;
+    private bool isSaving = false;
+    private decimal facultyCurrentHours = 0;
+    
+    // Data lists
     private List<Faculty> facultyList = new();
     private List<Course> courseList = new();
     private List<Term> termList = new();
+
+    // Validation
+    private List<string> validationErrors = new();
+    private List<string> validationWarnings = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,49 +250,248 @@
         termList = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
         
         // Set default term if available
-        if (termList.Any() && facultyWorkLoad.TermId == 0)
+        if (termList.Any() && workloadModel.TermId == 0)
         {
-            facultyWorkLoad.TermId = termList.First().Id;
+            workloadModel.TermId = termList.First().Id;
         }
+    }
+
+    private async Task<IEnumerable<Faculty>> SearchFaculty(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return facultyList.Take(10);
+        
+        return facultyList
+            .Where(f => f.FirstName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                       f.LastName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                       f.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Take(10);
+    }
+
+    private async Task<IEnumerable<Course>> SearchCourses(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return courseList.Take(10);
+        
+        return courseList
+            .Where(c => c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                       (c.CourseCode != null && c.CourseCode.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+            .Take(10);
+    }
+
+    private async Task OnTermChanged(int termId)
+    {
+        workloadModel.TermId = termId;
+        await UpdateFacultyCurrentHours();
+        await ValidateForm();
+    }
+
+    private async Task UpdateFacultyCurrentHours()
+    {
+        if (selectedFaculty != null && workloadModel.TermId > 0)
+        {
+            facultyCurrentHours = await _context.FacultyWorkLoads
+                .Where(w => w.FacultyEmail == selectedFaculty.Email && w.TermId == workloadModel.TermId)
+                .SumAsync(w => w.HoursAssigned);
+        }
+    }
+
+    private Color GetFacultyLoadColor()
+    {
+        if (selectedFaculty == null) return Color.Default;
+        
+        var totalAfterNew = facultyCurrentHours + workloadModel.HoursAssigned;
+        if (totalAfterNew > selectedFaculty.MaxTeachingHours)
+            return Color.Error;
+        if (totalAfterNew > selectedFaculty.MaxTeachingHours * 0.9m)
+            return Color.Warning;
+        return Color.Success;
+    }
+
+    private Color GetEmploymentCategoryColor(EmploymentCategory category)
+    {
+        return category switch
+        {
+            EmploymentCategory.FullTime => Color.Primary,
+            EmploymentCategory.PartTime => Color.Info,
+            EmploymentCategory.Adjunct => Color.Secondary,
+            EmploymentCategory.Visiting => Color.Warning,
+            EmploymentCategory.Emeritus => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetHoursColor()
+    {
+        if (workloadModel.HoursAssigned <= 0)
+            return Color.Error;
+        if (workloadModel.HoursAssigned > 20)
+            return Color.Warning;
+        return Color.Primary;
+    }
+
+    private async Task ValidateForm()
+    {
+        validationErrors.Clear();
+        validationWarnings.Clear();
+
+        // Required field validation (no DB calls)
+        if (selectedFaculty == null)
+            validationErrors.Add("Faculty member is required");
+        
+        if (selectedCourse == null)
+            validationErrors.Add("Course is required");
+        
+        if (workloadModel.TermId == 0)
+            validationErrors.Add("Term is required");
+        
+        if (workloadModel.HoursAssigned <= 0)
+            validationErrors.Add("Hours must be greater than 0");
+
+        // Business rule validations (lightweight checks)
+        if (selectedFaculty != null && selectedCourse != null && workloadModel.TermId > 0)
+        {
+            // Check if faculty is active (no DB call needed - in memory)
+            if (selectedFaculty.EmploymentCategory == EmploymentCategory.Emeritus)
+            {
+                validationWarnings.Add("Faculty member has Emeritus status - verify assignment is appropriate");
+            }
+
+            // Check hour limits (uses already loaded data)
+            var totalHours = facultyCurrentHours + workloadModel.HoursAssigned;
+            if (totalHours > selectedFaculty.MaxTeachingHours)
+            {
+                validationWarnings.Add($"Total hours ({totalHours:F1}) exceeds faculty max ({selectedFaculty.MaxTeachingHours:F1}) - this will be marked as Overloaded");
+            }
+
+            // Check reasonable hour limits per assignment
+            if (workloadModel.HoursAssigned > MaximumReasonableHours)
+            {
+                validationWarnings.Add($"Assignment hours exceed {MaximumReasonableHours} - verify this is correct");
+            }
+        }
+
+        StateHasChanged();
     }
 
     private void Cancel()
     {
-        facultyWorkLoad = new FacultyWorkLoad 
+        selectedFaculty = null;
+        selectedCourse = null;
+        workloadModel = new WorkloadFormModel 
         { 
             DateAssigned = DateTime.Now,
             TermId = termList.Any() ? termList.First().Id : 0
         };
+        facultyCurrentHours = 0;
+        validationErrors.Clear();
+        validationWarnings.Clear();
     }
 
     private bool IsFormValid()
     {
-        return !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
-               facultyList.Any(f => f.Email == facultyWorkLoad.FacultyEmail) &&
-               facultyWorkLoad.TermId > 0 &&
-               facultyWorkLoad.HoursAssigned > 0;
+        return selectedFaculty != null &&
+               selectedCourse != null &&
+               workloadModel.TermId > 0 &&
+               workloadModel.HoursAssigned > 0 &&
+               !validationErrors.Any();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await Save();
     }
 
     private async Task Save()
     {
+        await ValidateForm();
+        
         if (!IsFormValid())
         {
-            Snackbar.Add("Please fill in all required fields correctly.", Severity.Warning);
+            Snackbar.Add("Please correct the validation errors before saving.", Severity.Warning);
             return;
         }
 
+        isSaving = true;
+        StateHasChanged();
+
         try
         {
+            // Check uniqueness before saving (only once, at save time)
+            var term = termList.FirstOrDefault(t => t.Id == workloadModel.TermId);
+            if (term != null && selectedFaculty != null && selectedCourse != null)
+            {
+                var existingAssignment = await _context.FacultyWorkLoads
+                    .AnyAsync(w => w.FacultyEmail == selectedFaculty.Email &&
+                                   w.CourseId == selectedCourse.Id &&
+                                   w.TermId == workloadModel.TermId);
+
+                if (existingAssignment)
+                {
+                    Snackbar.Add($"This faculty member is already assigned to this course in {term.IntakeName} ({term.Year})", Severity.Error);
+                    return;
+                }
+            }
+
+            var facultyWorkLoad = new FacultyWorkLoad
+            {
+                FacultyEmail = selectedFaculty!.Email,
+                CourseId = selectedCourse!.Id,
+                TermId = workloadModel.TermId,
+                Workload = workloadModel.Workload,
+                HoursAssigned = workloadModel.HoursAssigned,
+                Description = workloadModel.Description,
+                DateAssigned = workloadModel.DateAssigned,
+                Status = WorkloadStatus.Draft,
+                CreatedDate = DateTime.Now
+            };
+
+            // Check if this will cause overload and set status accordingly
+            var totalHours = facultyCurrentHours + workloadModel.HoursAssigned;
+            if (totalHours > selectedFaculty.MaxTeachingHours)
+            {
+                facultyWorkLoad.Status = WorkloadStatus.Overloaded;
+            }
+
             _context.FacultyWorkLoads.Add(facultyWorkLoad);
             await _context.SaveChangesAsync();
 
-            Snackbar.Add($"Workload assignment of {facultyWorkLoad.HoursAssigned} hours added successfully!", Severity.Success);
+            var summary = $"{selectedFaculty.FirstName} {selectedFaculty.LastName} assigned to {selectedCourse.Name} ({workloadModel.HoursAssigned}hrs) for {term?.IntakeName}";
+            
+            Snackbar.Add(summary, Severity.Success);
             await OnSaved.InvokeAsync();
             Cancel();
+        }
+        catch (DbUpdateException ex)
+        {
+            Snackbar.Add($"Database error: Unable to save workload. {ex.InnerException?.Message ?? ex.Message}", Severity.Error);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error adding workload: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // Validation model
+    public class WorkloadFormModel
+    {
+        [Required(ErrorMessage = "Term is required")]
+        public int TermId { get; set; }
+
+        [Required(ErrorMessage = "Workload type is required")]
+        public Workload Workload { get; set; } = Workload.Course_Lecture;
+
+        [Required(ErrorMessage = "Hours are required")]
+        [Range(typeof(decimal), "0.1", "168", ErrorMessage = "Hours must be between 0.1 and 168")]
+        public decimal HoursAssigned { get; set; } = 3.0m;
+
+        public string? Description { get; set; }
+        
+        public DateTime? DateAssigned { get; set; } = DateTime.Now;
     }
 }
