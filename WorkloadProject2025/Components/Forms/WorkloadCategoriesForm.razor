@@ -14,8 +14,8 @@
                           ReadOnly="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Badge" />
-            <MudTextField Label="Minium Hours"
-                          @bind-Value="workloadCategory.MiniumHours"
+            <MudTextField Label="Minimum Hours"
+                          @bind-Value="workloadCategory.MinimumHours"
                           Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Badge" />
@@ -61,7 +61,7 @@
         workloadCategory = new WorkloadCategory();
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await workloadCategoryService.AddAsync(workloadCategory);
         Cancel();

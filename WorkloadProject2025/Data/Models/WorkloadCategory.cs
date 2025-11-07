@@ -7,7 +7,7 @@ namespace WorkloadProject2025.Data.Models
         [Key]
         public int Id { get; set; }
 
-        public int MiniumHours { get; set; }
+        public int MinimumHours { get; set; }
 
         public int MaximumHours { get; set; }
 

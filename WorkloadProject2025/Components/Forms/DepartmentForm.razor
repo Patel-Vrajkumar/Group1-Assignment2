@@ -54,10 +54,9 @@
         department = new Department(); // reset form
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await DepartmentService.AddAsync(department);
         Cancel();
-        department = new Department();
     }
 }

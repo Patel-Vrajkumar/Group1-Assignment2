@@ -35,7 +35,7 @@
         school = new School(); // reset form
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await schoolService.AddAsync(school);
         //Now invoke the callback

@@ -54,7 +54,7 @@
         POS = new ProgramOfStudy(); // reset form
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await programService.AddAsync(POS);
         //Now invoke the callback
