@@ -26,6 +26,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 // Services
 builder.Services.AddScoped<SchoolService>();
 builder.Services.AddScoped<IWorkloadCategoriesService, WorkloadCategoriesService>();
+builder.Services.AddScoped<IWorkloadCalculationService, WorkloadCalculationService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<FacultyService>();
 builder.Services.AddScoped<ProgramsOfStudyService>();
