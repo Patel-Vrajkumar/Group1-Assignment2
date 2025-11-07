@@ -89,12 +89,10 @@
  </MudText>
  </div>
  @{
- var workloads = facultyWorkloads.Where(w => w.FacultyEmail == faculty.Email).ToList();
- var totalHours = workloads.Sum(w => w.HoursAssigned);
- var summary = GetSummaryForFaculty(faculty.Email);
+ var summaryData = GetSummaryForFaculty(faculty.Email);
  }
- <MudChip T="string" Color="@(summary.Violations>0? Color.Error: Color.Success)" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Warning">
- @(summary.Violations>0? $"{summary.Violations} violation(s)": "OK")
+ <MudChip T="string" Color="@(summaryData.Violations>0? Color.Error: Color.Success)" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Warning">
+ @(summaryData.Violations>0? $"{summaryData.Violations} violation(s)": "OK")
  </MudChip>
  </MudStack>
  </CardHeaderContent>
@@ -112,20 +110,20 @@
  <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
  <MudStack Spacing="0">
  <MudText Typo="Typo.caption" Color="Color.Secondary">Total Workload</MudText>
- <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight:700;">@totalHours hrs</MudText>
+ <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight:700;">@GetWorkloadsForFaculty(faculty.Email).Sum(w => w.HoursAssigned) hrs</MudText>
  </MudStack>
  <MudStack Spacing="0" Style="text-align: right;">
  <MudText Typo="Typo.caption" Color="Color.Secondary">Assignments</MudText>
- <MudText Typo="Typo.h5" Color="Color.Secondary" Style="font-weight:700;">@workloads.Count</MudText>
+ <MudText Typo="Typo.h5" Color="Color.Secondary" Style="font-weight:700;">@GetWorkloadsForFaculty(faculty.Email).Count</MudText>
  </MudStack>
  </MudStack>
  </MudPaper>
 
- @if (workloads.Any())
+ @if (GetWorkloadsForFaculty(faculty.Email).Any())
  {
  <MudText Typo="Typo.body2" Class="mt-2" Style="font-weight:600;">Recent Assignments:</MudText>
  <MudStack Spacing="1">
- @foreach (var workload in workloads.Take(3))
+ @foreach (var workload in GetWorkloadsForFaculty(faculty.Email).Take(3))
  {
  var chipColor = GetWorkloadColor(workload.HoursAssigned);
  <MudChip T="string" 
@@ -137,11 +135,11 @@
  </MudChip>
  }
  </MudStack>
- @if (workloads.Count >3)
+ @if (GetWorkloadsForFaculty(faculty.Email).Count >3)
  {
  <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1">
  <MudIcon Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" /> 
- @(workloads.Count -3) more assignment(s)
+ @(GetWorkloadsForFaculty(faculty.Email).Count -3) more assignment(s)
  </MudText>
  }
  }
@@ -257,6 +255,11 @@
  if (v.Contains(',') || v.Contains('"'))
  return $"\"{v.Replace("\"", "\"\"")}\"";
  return v;
+ }
+
+ private List<FacultyWorkLoad> GetWorkloadsForFaculty(string email)
+ {
+ return facultyWorkloads.Where(w => w.FacultyEmail == email).ToList();
  }
 
  private (decimal TotalHours, int Violations) GetSummaryForFaculty(string email)
