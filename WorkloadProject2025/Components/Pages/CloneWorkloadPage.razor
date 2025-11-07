@@ -25,7 +25,7 @@
    </MudCardHeader>
 
         <MudCardContent>
-       <MudStepper @ref="_stepper" Color="Color.Primary" Variant="Variant.Filled">
+       <MudStepper @ref="_stepper">
     <!-- Step 1: Select Source Term -->
           <MudStep Title="Select Source Term" Icon="@Icons.Material.Filled.Source">
        <MudText Class="mb-4">Choose the term you want to copy workloads from:</MudText>
@@ -63,13 +63,17 @@
     <MudText Typo="Typo.h6" Class="mb-3">Optional: Filter what to clone</MudText>
       
   <MudStack Spacing="3">
-   <MudAutocomplete T="Faculty" Label="Select Specific Faculty (leave empty for all)"
+   <MudSelect T="Faculty" Label="Select Specific Faculty (leave empty for all)"
       MultiSelection="true"
        @bind-SelectedValues="@_selectedFaculty"
-       SearchFunc="@SearchFacultyAsync"
      ToStringFunc="@(f => f != null ? $"{f.FirstName} {f.LastName}" : "")"
        Variant="Variant.Outlined"
-     Clearable="true" />
+     Clearable="true">
+       @foreach (var faculty in _allFaculty)
+       {
+           <MudSelectItem T="Faculty" Value="@faculty">@faculty.FirstName @faculty.LastName</MudSelectItem>
+       }
+   </MudSelect>
 
          <MudSwitch @bind-Value="@_includeAnnotations" Color="Color.Primary">
 Include annotations/notes from original workloads

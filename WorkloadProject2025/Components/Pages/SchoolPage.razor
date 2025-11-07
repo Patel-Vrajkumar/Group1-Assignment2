@@ -30,7 +30,7 @@
     </MudStack>
 </MudContainer>
 
-<MudDialog @bind-IsVisible="addDialogOpen" MaxWidth="MaxWidth.Small">
+<MudDialog @bind-Visible="addDialogOpen">
     <DialogContent>
         <SchoolForm OnSaved="Save" />
     </DialogContent>
