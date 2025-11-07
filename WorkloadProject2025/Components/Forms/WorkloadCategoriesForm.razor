@@ -61,7 +61,7 @@
         workloadCategory = new WorkloadCategory();
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await workloadCategoryService.AddAsync(workloadCategory);
         Cancel();
