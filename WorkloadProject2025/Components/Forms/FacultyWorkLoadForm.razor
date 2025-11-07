@@ -3,7 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using MudBlazor
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext _context
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <MudCard Class="mx-auto mt-6" Style="max-width:900px;" Elevation="4">
@@ -66,7 +66,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var p in programOptions)
  {
- <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+ <MudSelectItem Value="@((int?)p.Id)">@p.Name</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -82,7 +82,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var c in courseOptions)
  {
- <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+ <MudSelectItem Value="@((int?)c.Id)">@c.Name</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -127,7 +127,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var cat in categoryOptions)
  {
- <MudSelectItem Value="@cat.Id">@cat.Name (@cat.MiniumHours-@cat.MaximumHours)</MudSelectItem>
+ <MudSelectItem Value="@((int?)cat.Id)">@cat.Name (@cat.MiniumHours-@cat.MaximumHours)</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -252,11 +252,12 @@
 
  protected override async Task OnInitializedAsync()
  {
- facultyOptions = await _context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
- termOptions = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
- programOptions = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
- courseOptions = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
- categoryOptions = await _context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
+ using var context = await DbFactory.CreateDbContextAsync();
+ facultyOptions = await context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
+ termOptions = await context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ programOptions = await context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courseOptions = await context.Courses.OrderBy(c => c.Name).ToListAsync();
+ categoryOptions = await context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
  }
 
  private void Cancel()
@@ -314,8 +315,10 @@
  {
  facultyWorkLoad.HRProcessedDate = DateTime.Now;
  }
- _context.FacultyWorkLoads.Add(facultyWorkLoad);
- await _context.SaveChangesAsync();
+ 
+ using var context = await DbFactory.CreateDbContextAsync();
+ context.FacultyWorkLoads.Add(facultyWorkLoad);
+ await context.SaveChangesAsync();
 
  Snackbar.Add($"Workload assignment of {facultyWorkLoad.HoursAssigned} hours added successfully!", Severity.Success);
  await OnSaved.InvokeAsync();

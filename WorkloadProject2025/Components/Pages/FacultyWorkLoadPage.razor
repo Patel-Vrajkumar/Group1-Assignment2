@@ -4,7 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.IO
-@inject ApplicationDbContext _context
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject FacultyWorkLoadService WorkloadService
 @inject WorkloadSummaryService SummaryService
 @inject IWorkloadCategoriesService CategoriesService
@@ -362,18 +362,20 @@
 
  protected override async Task OnInitializedAsync()
  {
- terms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
- programOptions = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
- courseOptions = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
- categoryOptions = await _context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
- facultyOptions = await _context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
+ using var context = await DbFactory.CreateDbContextAsync();
+ terms = await context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ programOptions = await context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courseOptions = await context.Courses.OrderBy(c => c.Name).ToListAsync();
+ categoryOptions = await context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
+ facultyOptions = await context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
  if (terms.Any()) { fromTermId = terms.First().Id; toTermId = terms.First().Id; importTermId = terms.First().Id; }
  await LoadData();
  }
 
  private async Task LoadData()
  {
- var q = _context.FacultyWorkLoads
+ using var context = await DbFactory.CreateDbContextAsync();
+ var q = context.FacultyWorkLoads
  .Include(w => w.Faculty)
  .Include(w => w.Course)
  .Include(w => w.ProgramOfStudy)
