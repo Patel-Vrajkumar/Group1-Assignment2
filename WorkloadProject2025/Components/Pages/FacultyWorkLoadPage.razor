@@ -337,6 +337,7 @@
  private int? filterTermId;
 
  private List<InstructorSummary> instructorSummaries = new();
+ private Dictionary<string, string?> instructorWarnings = new();
  private Dictionary<string, decimal> programTotals = new();
  private decimal grandTotal;
  private HashSet<int> selectedIds = new();
@@ -399,6 +400,13 @@
  var emails = workloads.Select(w => w.FacultyEmail).Distinct().ToList();
  var tasks = emails.Select(email => SummaryService.GetInstructorSummaryAsync(email, filterTermId));
  instructorSummaries = (await Task.WhenAll(tasks)).OrderByDescending(s => s.TotalHours).ToList();
+ 
+ // Precompute warnings to avoid blocking calls during rendering
+ instructorWarnings.Clear();
+ foreach (var summary in instructorSummaries)
+ {
+ instructorWarnings[summary.FacultyEmail] = await ComputeInstructorWarningAsync(summary);
+ }
  }
 
  private static decimal EffectiveHours(FacultyWorkLoad i)
@@ -409,13 +417,16 @@
 
  private string? GetInstructorWarning(InstructorSummary s)
  {
+ return instructorWarnings.TryGetValue(s.FacultyEmail, out var warning) ? warning : null;
+ }
+ 
+ private async Task<string?> ComputeInstructorWarningAsync(InstructorSummary s)
+ {
  var faculty = workloads.FirstOrDefault(w => w.FacultyEmail == s.FacultyEmail)?.Faculty;
  if (faculty == null) return null;
  var asOf = terms.FirstOrDefault(t => t.Id == filterTermId)?.StartDate ?? DateTime.Today;
- // Fetch applicable category synchronously for display only
- var catTask = CategoriesService.GetCurrentForFacultyAsync(faculty, asOf);
- catTask.Wait();
- var cat = catTask.Result;
+ // Fetch applicable category asynchronously
+ var cat = await CategoriesService.GetCurrentForFacultyAsync(faculty, asOf);
  if (cat == null) return null;
  if (s.TotalHours > cat.MaximumHours) return $"Over maximum ({s.TotalHours:0.##} > {cat.MaximumHours})";
  if (s.TotalHours < cat.MiniumHours) return $"Below minimum ({s.TotalHours:0.##} < {cat.MiniumHours})";

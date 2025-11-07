@@ -6,12 +6,13 @@ namespace WorkloadProject2025.Services
 {
  public class WorkloadSummaryService
  {
- private readonly ApplicationDbContext _context;
- public WorkloadSummaryService(ApplicationDbContext context) => _context = context;
+ private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+ public WorkloadSummaryService(IDbContextFactory<ApplicationDbContext> contextFactory) => _contextFactory = contextFactory;
 
  public async Task<InstructorSummary> GetInstructorSummaryAsync(string facultyEmail, int? termId = null, CancellationToken ct = default)
  {
- var q = _context.FacultyWorkLoads.AsQueryable().Where(w => w.FacultyEmail == facultyEmail);
+ await using var context = await _contextFactory.CreateDbContextAsync(ct);
+ var q = context.FacultyWorkLoads.AsQueryable().Where(w => w.FacultyEmail == facultyEmail);
  if (termId.HasValue) q = q.Where(w => w.TermId == termId.Value);
  var items = await q.ToListAsync(ct);
  return new InstructorSummary
@@ -26,7 +27,8 @@ namespace WorkloadProject2025.Services
 
  public async Task<GlobalSummary> GetGlobalSummaryAsync(int? termId = null, CancellationToken ct = default)
  {
- var q = _context.FacultyWorkLoads.AsQueryable();
+ await using var context = await _contextFactory.CreateDbContextAsync(ct);
+ var q = context.FacultyWorkLoads.AsQueryable();
  if (termId.HasValue) q = q.Where(w => w.TermId == termId.Value);
  var items = await q.ToListAsync(ct);
  return new GlobalSummary
