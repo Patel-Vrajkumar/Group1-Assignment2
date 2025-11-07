@@ -3,6 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
+@using MudBlazor
 @inject ApplicationDbContext _context
 @inject IWorkloadCalculationService Calc
 
@@ -33,7 +34,7 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" md="6" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Refresh" StartIcon="@Icons.Material.Filled.Refresh">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Refresh" StartIcon="@Icons.Material.Filled.Refresh">
                         Refresh
                     </MudButton>
                 </MudItem>
@@ -55,7 +56,7 @@
                         <CardHeaderContent>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.h6">@s.Name</MudText>
-                                <MudChip T="string" Color="@(violations>0? Color.Error: Color.Success)" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Warning">
+                                <MudChip T="string" Color="@(violations>0? MudBlazor.Color.Error: MudBlazor.Color.Success)" Variant="Variant.Outlined" Size="MudBlazor.Size.Small" Icon="@Icons.Material.Filled.Warning">
                                     @(violations>0? $"{violations} violation(s)": "OK")
                                 </MudChip>
                             </MudStack>
@@ -64,11 +65,11 @@
                     <MudCardContent>
                         <MudStack Row="true" Justify="Justify.SpaceBetween">
                             <MudStack>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Hours</MudText>
+                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">Total Hours</MudText>
                                 <MudText Typo="Typo.h5">@total</MudText>
                             </MudStack>
                             <MudStack>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Assignments</MudText>
+                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">Assignments</MudText>
                                 <MudText Typo="Typo.h5">@count</MudText>
                             </MudStack>
                         </MudStack>
