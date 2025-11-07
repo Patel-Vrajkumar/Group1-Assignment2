@@ -29,7 +29,7 @@
                         <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
                         @foreach (var t in terms)
                         {
-                            <MudSelectItem Value="@t.Id">@t.IntakeName (@t.StartDate?.ToString("MMM yyyy") - @t.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
+                            <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName (@t.StartDate?.ToString("MMM yyyy") - @t.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
