@@ -15,11 +15,11 @@ namespace WorkloadProject2025.Services
         {
             if (workloadcategory == null)
                 throw new ArgumentNullException();
-            if (workloadcategory.MiniumHours == 0)
+            if (workloadcategory.MinimumHours == 0)
             {
                 throw new Exception("Minimum Hours Must have an Amount");
             }
-            if (workloadcategory.MaximumHours < workloadcategory.MiniumHours) 
+            if (workloadcategory.MaximumHours < workloadcategory.MinimumHours) 
             {
                 throw new Exception("Maximum Hours Must have an Amount higher than Minimum Hours");
             }
