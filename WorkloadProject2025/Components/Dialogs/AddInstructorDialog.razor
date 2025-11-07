@@ -50,7 +50,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] object MudDialog { get; set; }
     [Parameter] public List<Department> Departments { get; set; } = new();
 
     private Faculty instructor = new() { Status = EmploymentStatus.Active, DateHired = DateTime.Today };
@@ -61,7 +61,17 @@
 
     private void Cancel()
     {
-        MudDialog?.Cancel();
+        if (MudDialog != null)
+        {
+            try
+            {
+                ((dynamic)MudDialog).Cancel();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error calling Cancel: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private async Task Save()
@@ -77,7 +87,17 @@
             instructor.DateHired = dateHired ?? DateTime.Today;
             await FacultyService.AddAsync(instructor);
             Snackbar.Add($"Instructor {instructor.FullName} added", Severity.Success);
-            MudDialog?.Close(DialogResult.Ok(instructor));
+            if (MudDialog != null)
+            {
+                try
+                {
+                    ((dynamic)MudDialog).Close(DialogResult.Ok(instructor));
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Error closing dialog: {ex.Message}", Severity.Error);
+                }
+            }
         }
         catch (Exception ex)
         {
