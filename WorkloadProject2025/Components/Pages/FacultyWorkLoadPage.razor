@@ -592,7 +592,8 @@
                     ClonedFromId = workload.Id,
                     SourceYear = sourceTerm?.Year,
                     CreatedDate = DateTime.Now,
-                    CreatedBy = "System" // Replace with actual user
+                    // TODO: Replace with authenticated user from ICurrentUserService or AuthenticationStateProvider
+                    CreatedBy = "CopyOperation"
                 };
 
                 _context.FacultyWorkLoads.Add(newWorkload);

@@ -114,7 +114,7 @@
                                      @bind-Value="workloadModel.HoursAssigned"
                                      Variant="Variant.Outlined"
                                      Required="true"
-                                     Min="0.1m"
+                                     Min="MinimumHours"
                                      Max="168"
                                      Step="0.5m"
                                      Adornment="Adornment.End"
@@ -212,6 +212,10 @@
 
 @code {
     [Parameter] public EventCallback OnSaved { get; set; }
+
+    // Constants for validation
+    private const decimal MinimumHours = 0.1m;
+    private const decimal MaximumReasonableHours = 40m;
 
     // Model with validation
     private WorkloadFormModel workloadModel = new()
@@ -361,9 +365,9 @@
             }
 
             // Check reasonable hour limits per assignment
-            if (workloadModel.HoursAssigned > 40)
+            if (workloadModel.HoursAssigned > MaximumReasonableHours)
             {
-                validationWarnings.Add("Assignment hours exceed 40 - verify this is correct");
+                validationWarnings.Add($"Assignment hours exceed {MaximumReasonableHours} - verify this is correct");
             }
         }
 
@@ -483,7 +487,7 @@
         public Workload Workload { get; set; } = Workload.Course_Lecture;
 
         [Required(ErrorMessage = "Hours are required")]
-        [Range(0.1, 168, ErrorMessage = "Hours must be between 0.1 and 168")]
+        [Range(typeof(decimal), "0.1", "168", ErrorMessage = "Hours must be between 0.1 and 168")]
         public decimal HoursAssigned { get; set; } = 3.0m;
 
         public string? Description { get; set; }
