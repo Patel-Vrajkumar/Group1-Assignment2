@@ -331,7 +331,7 @@
         validationErrors.Clear();
         validationWarnings.Clear();
 
-        // Required field validation
+        // Required field validation (no DB calls)
         if (selectedFaculty == null)
             validationErrors.Add("Faculty member is required");
         
@@ -344,31 +344,16 @@
         if (workloadModel.HoursAssigned <= 0)
             validationErrors.Add("Hours must be greater than 0");
 
-        // Business rule validations
+        // Business rule validations (lightweight checks)
         if (selectedFaculty != null && selectedCourse != null && workloadModel.TermId > 0)
         {
-            // Check uniqueness: Course + Instructor + Year (Term contains year)
-            var term = termList.FirstOrDefault(t => t.Id == workloadModel.TermId);
-            if (term != null)
-            {
-                var existingAssignment = await _context.FacultyWorkLoads
-                    .AnyAsync(w => w.FacultyEmail == selectedFaculty.Email &&
-                                   w.CourseId == selectedCourse.Id &&
-                                   w.TermId == workloadModel.TermId);
-
-                if (existingAssignment)
-                {
-                    validationErrors.Add($"This faculty member is already assigned to this course in {term.IntakeName} ({term.Year})");
-                }
-            }
-
-            // Check if faculty is active (not Emeritus with restrictions)
+            // Check if faculty is active (no DB call needed - in memory)
             if (selectedFaculty.EmploymentCategory == EmploymentCategory.Emeritus)
             {
                 validationWarnings.Add("Faculty member has Emeritus status - verify assignment is appropriate");
             }
 
-            // Check hour limits
+            // Check hour limits (uses already loaded data)
             var totalHours = facultyCurrentHours + workloadModel.HoursAssigned;
             if (totalHours > selectedFaculty.MaxTeachingHours)
             {
@@ -428,6 +413,22 @@
 
         try
         {
+            // Check uniqueness before saving (only once, at save time)
+            var term = termList.FirstOrDefault(t => t.Id == workloadModel.TermId);
+            if (term != null && selectedFaculty != null && selectedCourse != null)
+            {
+                var existingAssignment = await _context.FacultyWorkLoads
+                    .AnyAsync(w => w.FacultyEmail == selectedFaculty.Email &&
+                                   w.CourseId == selectedCourse.Id &&
+                                   w.TermId == workloadModel.TermId);
+
+                if (existingAssignment)
+                {
+                    Snackbar.Add($"This faculty member is already assigned to this course in {term.IntakeName} ({term.Year})", Severity.Error);
+                    return;
+                }
+            }
+
             var facultyWorkLoad = new FacultyWorkLoad
             {
                 FacultyEmail = selectedFaculty!.Email,
@@ -451,7 +452,6 @@
             _context.FacultyWorkLoads.Add(facultyWorkLoad);
             await _context.SaveChangesAsync();
 
-            var term = termList.FirstOrDefault(t => t.Id == workloadModel.TermId);
             var summary = $"{selectedFaculty.FirstName} {selectedFaculty.LastName} assigned to {selectedCourse.Name} ({workloadModel.HoursAssigned}hrs) for {term?.IntakeName}";
             
             Snackbar.Add(summary, Severity.Success);

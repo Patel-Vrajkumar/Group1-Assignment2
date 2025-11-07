@@ -454,9 +454,20 @@
                 return;
             }
 
-            // Build preview items
+            // Build preview items and batch conflict check
             previewItems.Clear();
             conflictItems.Clear();
+
+            // Batch query: Get all existing workloads in target term that might conflict
+            var existingWorkloads = await _context.FacultyWorkLoads
+                .Where(w => w.TermId == selectedTargetTermId!.Value)
+                .Select(w => new { w.FacultyEmail, w.CourseId })
+                .ToListAsync();
+
+            // Create a HashSet for O(1) lookup
+            var existingCombinations = new HashSet<(string, int?)>(
+                existingWorkloads.Select(w => (w.FacultyEmail, w.CourseId))
+            );
 
             foreach (var workload in sourceWorkloads)
             {
@@ -472,13 +483,8 @@
 
                 previewItems.Add(previewItem);
 
-                // Check for conflicts
-                var hasConflict = await _context.FacultyWorkLoads
-                    .AnyAsync(w => w.FacultyEmail == workload.FacultyEmail &&
-                                   w.CourseId == workload.CourseId &&
-                                   w.TermId == selectedTargetTermId!.Value);
-
-                if (hasConflict)
+                // Check for conflicts using in-memory HashSet
+                if (existingCombinations.Contains((workload.FacultyEmail, workload.CourseId)))
                 {
                     conflictItems.Add(previewItem);
                 }
