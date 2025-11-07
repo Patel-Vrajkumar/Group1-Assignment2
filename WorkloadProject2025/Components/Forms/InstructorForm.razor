@@ -1,0 +1,145 @@
+@using WorkloadProject2025.Data.Models
+@inject IFacultyService facultyService
+@inject ISnackbar Snackbar
+
+<MudCard Class="mx-auto mt-6 pa-4" Style="max-width: 750px;" Elevation="4">
+    <MudCardHeader Style="background: linear-gradient(135deg, #20c997 0%, #0dcaf0 100%); margin: -16px -16px 16px -16px; padding: 24px; border-radius: 4px 4px 0 0;">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Style="color: white;" />
+                <div>
+                    <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Add New Instructor</MudText>
+                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">Fill in the details below to add a new instructor</MudText>
+                </div>
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="instructor.FirstName"
+                              Label="First Name"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Enter instructor first name">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="instructor.LastName"
+                              Label="Last Name"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Enter instructor last name">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="instructor.Email"
+                              Label="Email Address"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              InputType="InputType.Email"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Email"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Enter a valid email address (this will be the unique identifier)">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="instructor.PhoneNumber"
+                              Label="Phone Number"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Phone"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Enter contact phone number">
+                </MudTextField>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+
+    <MudCardActions Class="d-flex justify-end pa-4" Style="background-color: #f5f5f5; margin: 16px -16px -16px -16px; border-radius: 0 0 4px 4px;">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Close"
+                   Class="mr-2"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!IsFormValid())"
+                   OnClick="Save">
+            Add Instructor
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
+
+    private Faculty instructor { get; set; } = new Faculty();
+
+    private void Cancel()
+    {
+        instructor = new Faculty();
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(instructor.FirstName) &&
+               !string.IsNullOrWhiteSpace(instructor.LastName) &&
+               !string.IsNullOrWhiteSpace(instructor.Email) &&
+               !string.IsNullOrWhiteSpace(instructor.PhoneNumber) &&
+               IsValidEmail(instructor.Email);
+    }
+
+    private async Task Save()
+    {
+        if (!IsFormValid())
+        {
+            Snackbar.Add("Please fill in all required fields correctly.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await facultyService.AddAsync(instructor);
+            Snackbar.Add($"Instructor {instructor.FirstName} {instructor.LastName} added.", Severity.Success);
+            Cancel();
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding instructor: {ex.Message}", Severity.Error);
+        }
+    }
+}

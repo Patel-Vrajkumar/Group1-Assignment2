@@ -3,6 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
+@using System.Text
 @inject ApplicationDbContext _context
 
 <PageTitle>Program Dashboard</PageTitle>
@@ -50,7 +51,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
-                            <MudText Typo="Typo.h4">@totalPrograms</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalPrograms == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Primary)">@totalPrograms</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
                     </MudStack>
@@ -63,7 +64,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
-                            <MudText Typo="Typo.h4">@totalCourses</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalCourses == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Secondary)">@totalCourses</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
                     </MudStack>
@@ -76,7 +77,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Hours</MudText>
-                            <MudText Typo="Typo.h4">@totalHours</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalHours == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Tertiary)">@totalHours</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.Timer" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
                     </MudStack>
@@ -89,7 +90,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Avg Hours/Course</MudText>
-                            <MudText Typo="Typo.h4">@avgHoursPerCourse.ToString("F1")</MudText>
+                            <MudText Typo="Typo.h4" Color="@(avgHoursPerCourse > 5 ? MudBlazor.Color.Error : MudBlazor.Color.Success)">@avgHoursPerCourse.ToString("F1")</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
                     </MudStack>
@@ -97,6 +98,11 @@
             </MudCard>
         </MudItem>
     </MudGrid>
+
+    <!-- Export Button -->
+    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportDashboardData" Class="mb-4">
+        Export Data (CSV)
+    </MudButton>
 
     <!-- Charts Grid -->
     <MudGrid>
@@ -298,6 +304,22 @@
         await CalculateStatistics();
         StateHasChanged();
     }
+
+    private async Task ExportDashboardData()
+    {
+        var csv = new StringBuilder();
+        csv.AppendLine("Program,Courses,Hours,AvgHoursPerCourse");
+        foreach (var program in programs)
+        {
+            var courseCount = program.Courses?.Count ?? 0;
+            var hours = program.Courses?.Sum(c => c.Hours) ?? 0;
+            csv.AppendLine($"{program.Name},{courseCount},{hours},{(courseCount > 0 ? ((decimal)hours / courseCount).ToString("F1") : "0")}");
+        }
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var fileName = "ProgramDashboard.csv";
+        await JS.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(bytes));
+    }
+    [Inject] IJSRuntime JS { get; set; }
 
     public class ChartData
     {

@@ -4,27 +4,29 @@
 
 <MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    
+
     <MudNavLink Href="schooldashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Dashboard">School Dashboard</MudNavLink>
     <MudNavLink Href="departmentdashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.BarChart">Department Dashboard</MudNavLink>
     <MudNavLink Href="programdashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PieChart">Program Dashboard</MudNavLink>
 
-    
-
+    <!-- Instructor Dashboard -->
+    <MudNavLink Href="instructordashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Assessment">Instructor Dashboard</MudNavLink>
 
     <MudNavLink Href="schoolpage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.School">Schools</MudNavLink>
 
-<MudNavLink Href="coursepage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Book">Courses</MudNavLink>
+    <MudNavLink Href="coursepage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Book">Courses</MudNavLink>
     <MudNavLink Href="departmentpage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Assessment">Departments</MudNavLink>
     <MudNavLink Href="programsofstudy" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PropaneTank">Programs</MudNavLink>
+
+    <!-- Instructor Management (list) -->
+    <MudNavLink Href="instructors" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">Instructor Management</MudNavLink>
+
     <MudNavLink Href="facultypage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">Faculty</MudNavLink>
     <MudNavLink Href="workloadcategories" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Workload Category</MudNavLink>
     <MudNavLink Href="termpage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Badge">Terms</MudNavLink>
     <MudNavLink Href="FacultyWorkloadPage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Badge">Faculty Workload</MudNavLink>
     <MudNavLink Href="semestercoursespage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Schedule">Create Semester Courses</MudNavLink>
 
-
-  
     <MudDivider />
     <MudNavLink Href="auth" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Lock">Auth Required</MudNavLink>
     <AuthorizeView>
@@ -36,7 +38,7 @@
                 <input type="hidden" name="ReturnUrl" value="@currentUrl" />
 
                 <button type="submit" class="mud-nav-link mud-ripple">
-                   
+
                     <MudIcon Icon="@Icons.Material.Filled.Logout" Color="Color.Info" Class="mr-3"></MudIcon> Logout
                 </button>
             </form>
@@ -46,7 +48,7 @@
             <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Password">Login</MudNavLink>
         </NotAuthorized>
     </AuthorizeView>
-    
+
 </MudNavMenu>
 
 
@@ -70,4 +72,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-

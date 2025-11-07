@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using MudBlazor
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -13,12 +14,17 @@
 </head>
 
 <body>
-    <Routes @rendermode="PageRenderMode" />
+    <MudThemeProvider DisableTransitionOnFirstRender="true">
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+        <Routes @rendermode="PageRenderMode" />
+    </MudThemeProvider>
     <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
     <script src=@Assets["_content/Extensions.MudBlazor.StaticInput/NavigationObserver.js"]></script>
     <script src=@Assets["_content/Blazor-ApexCharts/js/apex-charts.min.js"]></script>
     <script src=@Assets["_content/Blazor-ApexCharts/js/blazor-apex-charts.js"]></script>
+    <script src="js/charthelper.js"></script>
 </body>
 
 </html>

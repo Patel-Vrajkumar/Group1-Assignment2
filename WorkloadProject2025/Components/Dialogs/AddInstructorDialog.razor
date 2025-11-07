@@ -1,0 +1,88 @@
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+@using MudBlazor
+@inject IFacultyService FacultyService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isValid">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="instructor.FirstName" Label="First Name" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="instructor.LastName" Label="Last Name" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="instructor.Email" Label="Email" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="instructor.PhoneNumber" Label="Phone Number" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="instructor.DepartmentId" Label="Department" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem Value="@((int?)null)">No Department</MudSelectItem>
+                        @foreach (var d in Departments)
+                        {
+                            <MudSelectItem Value="@d.Id">@d.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="dateHired" Label="Date Hired" Variant="Variant.Outlined" MaxDate="DateTime.Today" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="EmploymentStatus" @bind-Value="instructor.Status" Label="Status" Variant="Variant.Outlined">
+                        @foreach (EmploymentStatus s in Enum.GetValues(typeof(EmploymentStatus)))
+                        {
+                            <MudSelectItem Value="@s">@s.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!isValid || isSaving)" OnClick="@Save">Add Instructor</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public List<Department> Departments { get; set; } = new();
+
+    private Faculty instructor = new() { Status = EmploymentStatus.Active, DateHired = DateTime.Today };
+    private DateTime? dateHired = DateTime.Today;
+    private MudForm form;
+    private bool isValid;
+    private bool isSaving;
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task Save()
+    {
+        if (form != null)
+            await form.Validate();
+
+        if (!isValid) return;
+
+        try
+        {
+            isSaving = true;
+            instructor.DateHired = dateHired ?? DateTime.Today;
+            await FacultyService.AddAsync(instructor);
+            Snackbar.Add($"Instructor {instructor.FullName} added", Severity.Success);
+            MudDialog?.Close(DialogResult.Ok(instructor));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding instructor: {ex.Message}", Severity.Error);
+        }
+        finally { isSaving = false; }
+    }
+}

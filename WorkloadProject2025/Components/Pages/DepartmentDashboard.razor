@@ -3,6 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
+@using System.Text
 @inject ApplicationDbContext _context
 
 <PageTitle>Department Dashboard</PageTitle>
@@ -50,7 +51,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Departments</MudText>
-                            <MudText Typo="Typo.h4">@totalDepartments</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalDepartments == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Primary)">@totalDepartments</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
                     </MudStack>
@@ -63,7 +64,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Programs</MudText>
-                            <MudText Typo="Typo.h4">@totalPrograms</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalPrograms == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Secondary)">@totalPrograms</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.PropaneTank" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Secondary" />
                     </MudStack>
@@ -76,7 +77,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Courses</MudText>
-                            <MudText Typo="Typo.h4">@totalCourses</MudText>
+                            <MudText Typo="Typo.h4" Color="@(totalCourses == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Tertiary)">@totalCourses</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.Book" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Tertiary" />
                     </MudStack>
@@ -89,7 +90,7 @@
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <div>
                             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Avg Programs/Dept</MudText>
-                            <MudText Typo="Typo.h4">@avgProgramsPerDept.ToString("F1")</MudText>
+                            <MudText Typo="Typo.h4" Color="@(avgProgramsPerDept > 5 ? MudBlazor.Color.Error : MudBlazor.Color.Success)">@avgProgramsPerDept.ToString("F1")</MudText>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.Equalizer" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
                     </MudStack>
@@ -97,6 +98,11 @@
             </MudCard>
         </MudItem>
     </MudGrid>
+
+    <!-- Export Button -->
+    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportDashboardData" Class="mb-4">
+        Export Data (CSV)
+    </MudButton>
 
     <!-- Charts Grid -->
     <MudGrid>
@@ -299,6 +305,22 @@
         await CalculateStatistics();
         StateHasChanged();
     }
+
+    private async Task ExportDashboardData()
+    {
+        var csv = new StringBuilder();
+        csv.AppendLine("Department,Programs,Courses,AvgProgramsPerDept");
+        foreach (var dept in departments)
+        {
+            var progCount = dept.ProgramsOfStudy?.Count ?? 0;
+            var courseCount = dept.ProgramsOfStudy?.SelectMany(p => p.Courses ?? new List<Course>()).Count() ?? 0;
+            csv.AppendLine($"{dept.Name},{progCount},{courseCount},{(progCount > 0 ? ((decimal)progCount).ToString("F1") : "0")}");
+        }
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var fileName = "DepartmentDashboard.csv";
+        await JS.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(bytes));
+    }
+    [Inject] IJSRuntime JS { get; set; }
 
     public class ChartData
     {

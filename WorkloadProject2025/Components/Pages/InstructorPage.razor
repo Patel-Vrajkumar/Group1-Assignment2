@@ -1,0 +1,402 @@
+﻿@page "/instructors"
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+@using WorkloadProject2025.Components.Dialogs
+@using MudBlazor
+@inject IFacultyService FacultyService
+@inject IDepartmentService DepartmentService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Instructor Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <!-- Header -->
+    <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" Style="color: white; font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
+                    Instructor Management
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                    Manage faculty members and their information
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" 
+                      Color="Color.Surface" 
+                      StartIcon="@Icons.Material.Filled.PersonAdd"
+                      OnClick="OpenAddDialog"
+                      Size="Size.Large">
+                Add Instructor
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Search and Filter -->
+    <MudCard Class="mb-4" Elevation="2">
+        <MudCardContent>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField @bind-Value="searchString" 
+                                 Label="Search" 
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 Immediate="true"
+                                 Placeholder="Search by name or email..."
+                                 DebounceInterval="300"/>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="int?" 
+                              @bind-Value="selectedDepartmentId" 
+                              Label="Department" 
+                              Variant="Variant.Outlined"
+                              Clearable="true">
+                        <MudSelectItem Value="@((int?)null)">All Departments</MudSelectItem>
+                        @foreach (var dept in departments)
+                        {
+                            <MudSelectItem Value="@dept.Id">@dept.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="EmploymentStatus?" 
+                              @bind-Value="selectedStatus" 
+                              Label="Status" 
+                              Variant="Variant.Outlined"
+                              Clearable="true">
+                        <MudSelectItem Value="@((EmploymentStatus?)null)">All Statuses</MudSelectItem>
+                        @foreach (EmploymentStatus status in Enum.GetValues(typeof(EmploymentStatus)))
+                        {
+                            <MudSelectItem Value="@((EmploymentStatus?)status)">@status.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="2" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Primary" 
+                              OnClick="ApplyFilters"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.FilterAlt">
+                        Filter
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Summary Cards -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Instructors</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Primary" Class="mt-2">@filteredInstructors.Count</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Active</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Success" Class="mt-2">
+                                @filteredInstructors.Count(i => i.Status == EmploymentStatus.Active)
+                            </MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Departments</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Info" Class="mt-2">@departments.Count</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Color="Color.Info" Size="Size.Large" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3">
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">On Leave</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Warning" Class="mt-2">
+                                @filteredInstructors.Count(i => i.Status == EmploymentStatus.OnLeave)
+                            </MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Warning" Size="Size.Large" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Instructors Table -->
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Filled.TableChart" Class="mr-2" Size="Size.Small" />
+                    Instructors (@filteredInstructors.Count)
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                              Color="Color.Default" 
+                              OnClick="LoadData"
+                              Title="Refresh" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent Class="pa-0">
+            <MudTable Items="@filteredInstructors" 
+                     Hover="true" 
+                     Dense="true" 
+                     FixedHeader="true"
+                     Height="600px"
+                     Loading="@isLoading"
+                     LoadingProgressColor="Color.Primary">
+                <HeaderContent>
+                    <MudTh>Instructor</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>Department</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Date Hired</MudTh>
+                    <MudTh Style="text-align: right;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Instructor">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                @GetInitials(context)
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.FullName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Instructor</MudText>
+                            </div>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Email">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@context.Email</MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Phone">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@context.PhoneNumber</MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Department">
+                        @if (context.Department != null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Department.Name</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">No Department</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="EmploymentStatus" Size="Size.Small" 
+                                Color="@GetStatusColor(context.Status)">
+                            @context.Status.ToString()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Hired">@context.DateHired.ToString("MMM dd, yyyy")</MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align: right;">
+                        <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                          Color="Color.Info" 
+                                          Size="Size.Small"
+                                          OnClick="@(() => ViewInstructor(context))"
+                                          Title="View Details" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                          Color="Color.Primary" 
+                                          Size="Size.Small"
+                                          OnClick="@(() => OpenEditDialog(context))"
+                                          Title="Edit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                          Color="Color.Error" 
+                                          Size="Size.Small"
+                                          OnClick="@(() => DeleteInstructor(context))"
+                                          Title="Delete" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">No instructors found</MudText>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary" 
+                                  StartIcon="@Icons.Material.Filled.PersonAdd"
+                                  OnClick="OpenAddDialog">
+                            Add First Instructor
+                        </MudButton>
+                    </MudStack>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
+                </PagerContent>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private List<Faculty> instructors = new();
+    private List<Faculty> filteredInstructors = new();
+    private List<Department> departments = new();
+    
+    private string searchString = string.Empty;
+    private int? selectedDepartmentId = null;
+    private EmploymentStatus? selectedStatus = null;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            instructors = await FacultyService.GetAllAsync();
+            departments = await DepartmentService.GetAllAsync();
+            
+            ApplyFilters();
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = instructors.AsEnumerable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(searchString))
+        {
+            query = query.Where(i =>
+                i.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                i.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                i.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        // Department filter
+        if (selectedDepartmentId.HasValue)
+        {
+            query = query.Where(i => i.DepartmentId == selectedDepartmentId.Value);
+        }
+
+        // Status filter
+        if (selectedStatus.HasValue)
+        {
+            query = query.Where(i => i.Status == selectedStatus.Value);
+        }
+
+        filteredInstructors = query.ToList();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters { ["Departments"] = departments };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true };
+        var dialog = DialogService.Show<AddInstructorDialog>("Add New Instructor", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await LoadData();
+    }
+
+    private async Task OpenEditDialog(Faculty instructor)
+    {
+        var parameters = new DialogParameters { ["Instructor"] = instructor, ["Departments"] = departments };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true };
+        var dialog = DialogService.Show<EditInstructorDialog>("Edit Instructor", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await LoadData();
+    }
+
+    private async Task ViewInstructor(Faculty instructor)
+    {
+        var parameters = new DialogParameters { ["Instructor"] = instructor };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true };
+        DialogService.Show<ViewInstructorDialog>($"{instructor.FullName} - Details", parameters, options);
+    }
+
+    private async Task DeleteInstructor(Faculty instructor)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete {instructor.FullName}? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseOnEscapeKey = true });
+
+        if (result == true)
+        {
+            try
+            {
+                await FacultyService.DeleteAsync(instructor.Email);
+                Snackbar.Add($"{instructor.FullName} has been deleted", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting instructor: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private Color GetStatusColor(EmploymentStatus status)
+    {
+        return status switch
+        {
+            EmploymentStatus.Active => Color.Success,
+            EmploymentStatus.OnLeave => Color.Warning,
+            EmploymentStatus.Retired => Color.Default,
+            EmploymentStatus.Inactive => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetInitials(Faculty f)
+    {
+        if (f == null) return "?";
+        var first = string.IsNullOrWhiteSpace(f.FirstName) ? string.Empty : f.FirstName.Trim();
+        var last = string.IsNullOrWhiteSpace(f.LastName) ? string.Empty : f.LastName.Trim();
+        var a = first.Length > 0 ? first[0].ToString().ToUpper() : string.Empty;
+        var b = last.Length > 0 ? last[0].ToString().ToUpper() : string.Empty;
+        var initials = (a + b).Trim();
+        return string.IsNullOrEmpty(initials) ? "?" : initials;
+    }
+}
+
+

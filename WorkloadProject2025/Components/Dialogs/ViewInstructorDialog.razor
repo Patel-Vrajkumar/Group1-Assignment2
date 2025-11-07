@@ -1,0 +1,60 @@
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Surface" Size="Size.Large" Style="width: 80px; height: 80px; font-size: 2rem;">
+                        @GetInitials(Instructor)
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">@Instructor.FullName</MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">@Instructor.Email</MudText>
+                        <MudChip T="EmploymentStatus" Size="Size.Small" Color="@GetStatusColor(Instructor.Status)" Style="margin-top:8px">@Instructor.Status.ToString()</MudChip>
+                    </div>
+                </MudStack>
+            </MudPaper>
+
+            <MudCard Elevation="0" Outlined="true">
+                <MudCardHeader><CardHeaderContent><MudText Typo="Typo.h6">Contact</MudText></CardHeaderContent></MudCardHeader>
+                <MudCardContent>
+                    <MudText>@Instructor.PhoneNumber</MudText>
+                    <MudText>@(Instructor.Department?.Name ?? "No Department")</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] object MudDialog { get; set; }
+    [Parameter] public Faculty Instructor { get; set; }
+
+    private void Close() => ((dynamic)MudDialog).Close();
+
+    private Color GetStatusColor(EmploymentStatus status) => status switch
+    {
+        EmploymentStatus.Active => Color.Success,
+        EmploymentStatus.OnLeave => Color.Warning,
+        EmploymentStatus.Retired => Color.Default,
+        EmploymentStatus.Inactive => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetInitials(Faculty f)
+    {
+        if (f == null) return "?";
+        var first = string.IsNullOrWhiteSpace(f.FirstName) ? string.Empty : f.FirstName.Trim();
+        var last = string.IsNullOrWhiteSpace(f.LastName) ? string.Empty : f.LastName.Trim();
+        var a = first.Length > 0 ? first[0].ToString().ToUpper() : string.Empty;
+        var b = last.Length > 0 ? last[0].ToString().ToUpper() : string.Empty;
+        var initials = (a + b).Trim();
+        return string.IsNullOrEmpty(initials) ? "?" : initials;
+    }
+}

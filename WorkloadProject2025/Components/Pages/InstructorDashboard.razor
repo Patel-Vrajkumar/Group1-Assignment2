@@ -1,0 +1,274 @@
+@page "/instructordashboard"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@using ApexCharts
+@using System.Text
+@using ClosedXML.Excel
+@using System.IO
+@inject ApplicationDbContext _context
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Instructor Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+        Instructor Workload Dashboard
+    </MudText>
+
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" Label="Select Instructor" @bind-Value="selectedInstructorEmail" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@string.Empty">All Instructors</MudSelectItem>
+                        @foreach (var f in instructors)
+                        {
+                            <MudSelectItem Value="@f.Email">@f.FirstName @f.LastName (@f.Email)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="int?" Label="Select Course" @bind-Value="selectedCourseId" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@((int?)null)">All Courses</MudSelectItem>
+                        @foreach (var c in courses)
+                        {
+                            <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Refresh" StartIcon="@Icons.Material.Filled.Refresh">Refresh</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Info" OnClick="ExportCsv" StartIcon="@Icons.Material.Filled.Download" Class="ml-2">Export CSV</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Success" OnClick="ExportExcel" StartIcon="@Icons.Material.Filled.TableChart" Class="ml-2">Export Excel</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (totalHours > 40)
+    {
+        <MudAlert Severity="Severity.Warning" Elevation="1" Class="mb-4">
+            <MudText Typo="Typo.body1">Warning: Total assigned hours exceed 40. Some instructors may be overloaded.</MudText>
+        </MudAlert>
+    }
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Instructors</MudText>
+                    <MudText Typo="Typo.h4" Color="@(totalInstructors == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Primary)">@totalInstructors</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Workloads</MudText>
+                    <MudText Typo="Typo.h4" Color="@(totalWorkloads == 0 ? MudBlazor.Color.Error : MudBlazor.Color.Secondary)">@totalWorkloads</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Hours</MudText>
+                    <MudText Typo="Typo.h4" Color="@(totalHours > 40 ? MudBlazor.Color.Error : MudBlazor.Color.Success)">@totalHours</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Hours by Instructor</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData" Title="Hours per Instructor" Height="350">
+                        <ApexPointSeries TItem="ChartData" Items="hoursByInstructorData" Name="Hours" SeriesType="SeriesType.Bar" XValue="@(e => e.Label)" YValue="@(e => e.Value)" />
+                    </ApexChart>
+
+                    <div class="mt-4">
+                        @foreach (var item in hoursByInstructorData.OrderByDescending(i => i.Value))
+                        {
+                            var color = item.Value > 40 ? "#e53935" : (item.Value > 25 ? "#ffb300" : "#43a047");
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="pa-1 mb-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Color="MudBlazor.Color.Default" />
+                                <MudText Class="ml-2">@item.Label</MudText>
+                                <MudPaper Class="ml-2 px-2" Style=@($"background:{color}; color:white; border-radius:12px; font-weight:600;") Elevation="0">@item.Value hrs</MudPaper>
+                            </MudStack>
+                        }
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Workload Types</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <ApexChart TItem="ChartData" Title="Workloads" Height="350">
+                        <ApexPointSeries TItem="ChartData" Items="workloadTypeData" Name="Types" SeriesType="SeriesType.Pie" XValue="@(e => e.Label)" YValue="@(e => e.Value)" />
+                    </ApexChart>
+
+                    <MudTable Items="workloads.OrderByDescending(w => w.HoursAssigned)" Hover="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Instructor</MudTh>
+                            <MudTh>Course</MudTh>
+                            <MudTh>Workload</MudTh>
+                            <MudTh>Hours</MudTh>
+                            <MudTh>Assigned</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Instructor">@context.FacultyEmail</MudTd>
+                            <MudTd DataLabel="Course">@context.Course?.Name</MudTd>
+                            <MudTd DataLabel="Workload">@context.Workload.ToString().Replace("_", " ")</MudTd>
+                            <MudTd DataLabel="Hours">
+                                <MudText Color="@(context.HoursAssigned > 40 ? MudBlazor.Color.Error : (context.HoursAssigned > 25 ? MudBlazor.Color.Warning : MudBlazor.Color.Success))">@context.HoursAssigned</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Assigned">@context.DateAssigned?.ToString("MMM dd, yyyy")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<Faculty> instructors = new();
+    private List<Course> courses = new();
+    private List<FacultyWorkLoad> workloads = new();
+
+    private string selectedInstructorEmail = string.Empty;
+    private int? selectedCourseId = null;
+
+    private int totalInstructors = 0;
+    private int totalWorkloads = 0;
+    private decimal totalHours = 0;
+
+    private List<ChartData> hoursByInstructorData = new();
+    private List<ChartData> workloadTypeData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadLookups();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing dashboard: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        instructors = await _context.Faculty.ToListAsync();
+        courses = await _context.Courses.ToListAsync();
+    }
+
+    private async Task LoadData()
+    {
+        var query = _context.FacultyWorkLoads
+            .Include(fw => fw.Faculty)
+            .Include(fw => fw.Course)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(selectedInstructorEmail))
+            query = query.Where(q => q.FacultyEmail == selectedInstructorEmail);
+        if (selectedCourseId.HasValue)
+            query = query.Where(q => q.CourseId == selectedCourseId.Value);
+
+        workloads = await query.ToListAsync();
+
+        totalInstructors = instructors.Count;
+        totalWorkloads = workloads.Count;
+        totalHours = workloads.Sum(w => w.HoursAssigned);
+
+        BuildCharts();
+    }
+
+    private void BuildCharts()
+    {
+        hoursByInstructorData.Clear();
+        workloadTypeData.Clear();
+
+        var instructorGroups = workloads.GroupBy(w => w.FacultyEmail);
+        foreach (var g in instructorGroups)
+        {
+            hoursByInstructorData.Add(new ChartData { Label = g.Key, Value = g.Sum(x => x.HoursAssigned) });
+        }
+
+        var workloadGroups = workloads.GroupBy(w => w.Workload.ToString());
+        foreach (var g in workloadGroups)
+        {
+            workloadTypeData.Add(new ChartData { Label = g.Key.Replace("_", " "), Value = g.Count() });
+        }
+    }
+
+    private async Task Refresh()
+    {
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task ExportCsv()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("InstructorEmail,Course,WorkloadType,HoursAssigned,DateAssigned");
+        foreach (var w in workloads)
+        {
+            var email = (w.FacultyEmail ?? string.Empty).Replace("\"", "\"\"");
+            var course = (w.Course?.Name ?? "(none)").Replace("\"", "\"\"");
+            var workloadType = w.Workload.ToString();
+            var date = w.DateAssigned?.ToString("o") ?? string.Empty;
+            sb.AppendLine($"\"{email}\",\"{course}\",\"{workloadType}\",{w.HoursAssigned},\"{date}\"");
+        }
+        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", "InstructorDashboard.csv", base64);
+    }
+
+    private async Task ExportExcel()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("InstructorReport");
+        ws.Cell(1, 1).Value = "InstructorEmail";
+        ws.Cell(1, 2).Value = "Course";
+        ws.Cell(1, 3).Value = "WorkloadType";
+        ws.Cell(1, 4).Value = "HoursAssigned";
+        ws.Cell(1, 5).Value = "DateAssigned";
+
+        var row = 2;
+        foreach (var w in workloads)
+        {
+            ws.Cell(row, 1).Value = w.FacultyEmail;
+            ws.Cell(row, 2).Value = w.Course?.Name ?? "(none)";
+            ws.Cell(row, 3).Value = w.Workload.ToString();
+            ws.Cell(row, 4).Value = (double)w.HoursAssigned;
+            ws.Cell(row, 5).Value = w.DateAssigned?.ToString("o");
+            row++;
+        }
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        var bytes = ms.ToArray();
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", "InstructorReport.xlsx", base64);
+    }
+
+    public class ChartData { public string Label { get; set; } = ""; public decimal Value { get; set; } }
+}

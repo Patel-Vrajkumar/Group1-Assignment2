@@ -1,0 +1,131 @@
+@using WorkloadProject2025.Data.Models
+@using WorkloadProject2025.Services
+@using MudBlazor
+@inject IFacultyService FacultyService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isValid">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="editInstructor.FirstName" Label="First Name" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="editInstructor.LastName" Label="Last Name" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Value="@editInstructor.Email" Label="Email" Variant="Variant.Outlined" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="editInstructor.PhoneNumber" Label="Phone Number" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="editInstructor.DepartmentId" Label="Department" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem Value="@((int?)null)">No Department</MudSelectItem>
+                        @foreach (var d in Departments)
+                        {
+                            <MudSelectItem Value="@d.Id">@d.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="dateHired" Label="Date Hired" Variant="Variant.Outlined" MaxDate="DateTime.Today" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="EmploymentStatus" @bind-Value="editInstructor.Status" Label="Status" Variant="Variant.Outlined">
+                        @foreach (EmploymentStatus s in Enum.GetValues(typeof(EmploymentStatus)))
+                        {
+                            <MudSelectItem Value="@s">@s.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!isValid || isSaving)" OnClick="@Save">Save Changes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] object MudDialog { get; set; }
+    [Parameter] public Faculty Instructor { get; set; }
+    [Parameter] public List<Department> Departments { get; set; } = new();
+
+    private Faculty editInstructor = new();
+    private DateTime? dateHired;
+    private MudForm form;
+    private bool isValid = true;
+    private bool isSaving;
+
+    protected override void OnInitialized()
+    {
+        editInstructor = new Faculty
+        {
+            Email = Instructor.Email,
+            FirstName = Instructor.FirstName,
+            LastName = Instructor.LastName,
+            PhoneNumber = Instructor.PhoneNumber,
+            DepartmentId = Instructor.DepartmentId,
+            DateHired = Instructor.DateHired,
+            Status = Instructor.Status
+        };
+        dateHired = Instructor.DateHired;
+    }
+
+    private void Cancel()
+    {
+        Snackbar.Add("Edit Cancel invoked", Severity.Info);
+        if (MudDialog == null)
+        {
+            Snackbar.Add("MudDialog is null - cannot close dialog via cascading parameter.", Severity.Warning);
+            return;
+        }
+        try
+        {
+            ((dynamic)MudDialog).Cancel();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error calling Cancel: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Save()
+    {
+        Snackbar.Add("Edit Save invoked", Severity.Info);
+        if (form == null)
+        {
+            Snackbar.Add("Form reference is null", Severity.Warning);
+        }
+        else
+        {
+            await form.Validate();
+        }
+
+        if (!isValid)
+        {
+            Snackbar.Add("Form is not valid", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            editInstructor.DateHired = dateHired ?? DateTime.Today;
+            await FacultyService.UpdateAsync(editInstructor);
+            Snackbar.Add($"Instructor {editInstructor.FullName} updated", Severity.Success);
+            if (MudDialog != null)
+            {
+                try { ((dynamic)MudDialog).Close(DialogResult.Ok(editInstructor)); } catch (Exception ex) { Snackbar.Add($"Error closing dialog: {ex.Message}", Severity.Error); }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating instructor: {ex.Message}", Severity.Error);
+        }
+        finally { isSaving = false; }
+    }
+}
