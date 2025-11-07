@@ -119,57 +119,187 @@
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
-            <MudAlert Severity="Severity.Info">
-                This will copy all workload assignments from a previous year to a new term.
-            </MudAlert>
-            
-            <MudSelect T="int?"
-                       Label="Source Term (Previous Year)"
-                       @bind-Value="selectedSourceTermId"
-                       Variant="Variant.Outlined"
-                       Required="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.CalendarToday"
-                       HelperText="Select the term to copy from">
-                @foreach (var term in availableTerms)
-                {
-                    <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudSelect T="int?"
-                       Label="Target Term (New Year)"
-                       @bind-Value="selectedTargetTermId"
-                       Variant="Variant.Outlined"
-                       Required="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.Event"
-                       HelperText="Select the term to copy to">
-                @foreach (var term in availableTerms)
-                {
-                    <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
-                }
-            </MudSelect>
-
-            @if (copyPreviewCount > 0)
+            @if (!showPreview)
             {
-                <MudAlert Severity="Severity.Success">
-                    <strong>@copyPreviewCount</strong> workload assignment(s) will be copied.
+                <MudAlert Severity="Severity.Info">
+                    Copy workload assignments from a previous term with conflict detection and resolution options.
                 </MudAlert>
+                
+                <MudSelect T="int?"
+                           Label="Source Term (Previous Year)"
+                           @bind-Value="selectedSourceTermId"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                           HelperText="Select the term to copy from"
+                           Disabled="@isCopying">
+                    @foreach (var term in availableTerms)
+                    {
+                        <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="int?"
+                           Label="Target Term (New Year)"
+                           @bind-Value="selectedTargetTermId"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Event"
+                           HelperText="Select the term to copy to"
+                           Disabled="@isCopying">
+                    @foreach (var term in availableTerms)
+                    {
+                        <MudSelectItem Value="@((int?)term.Id)">@term.IntakeName (@term.Year)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="CopyScope"
+                           Label="Copy Scope"
+                           @bind-Value="copyScope"
+                           Variant="Variant.Outlined"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.FilterList"
+                           HelperText="Select what to copy"
+                           Disabled="@isCopying">
+                    <MudSelectItem Value="CopyScope.All">All Workloads</MudSelectItem>
+                    <MudSelectItem Value="CopyScope.Instructor">Specific Instructor</MudSelectItem>
+                    <MudSelectItem Value="CopyScope.Program">Specific Program</MudSelectItem>
+                    <MudSelectItem Value="CopyScope.Department">Specific Department</MudSelectItem>
+                </MudSelect>
+
+                @if (copyScope == CopyScope.Instructor)
+                {
+                    <MudAutocomplete T="Faculty"
+                                     Label="Select Instructor"
+                                     @bind-Value="selectedInstructor"
+                                     SearchFunc="@SearchInstructors"
+                                     ToStringFunc="@(f => f != null ? $"{f.FirstName} {f.LastName}" : "")"
+                                     Variant="Variant.Outlined"
+                                     Disabled="@isCopying">
+                        <ItemTemplate Context="faculty">
+                            <MudText Typo="Typo.body2">@faculty.FirstName @faculty.LastName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@faculty.Email</MudText>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                }
+                @if (copyScope == CopyScope.Program)
+                {
+                    <MudSelect T="int?"
+                               Label="Select Program"
+                               @bind-Value="selectedProgramId"
+                               Variant="Variant.Outlined"
+                               Disabled="@isCopying">
+                        @foreach (var program in programs)
+                        {
+                            <MudSelectItem Value="@((int?)program.Id)">@program.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                @if (copyScope == CopyScope.Department)
+                {
+                    <MudSelect T="int?"
+                               Label="Select Department"
+                               @bind-Value="selectedDepartmentId"
+                               Variant="Variant.Outlined"
+                               Disabled="@isCopying">
+                        @foreach (var dept in departments)
+                        {
+                            <MudSelectItem Value="@((int?)dept.Id)">@dept.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
             }
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="CloseCopyDialog" Color="Color.Default">Cancel</MudButton>
-        <MudButton OnClick="PreviewCopy" Color="Color.Info" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Preview">Preview</MudButton>
-        <MudButton OnClick="CopyPreviousYear" 
-                   Color="Color.Primary" 
-                   Variant="Variant.Filled" 
-                   StartIcon="@Icons.Material.Filled.ContentCopy"
-                   Disabled="@(!selectedSourceTermId.HasValue || !selectedTargetTermId.HasValue || selectedSourceTermId == selectedTargetTermId)">
-            Copy
-        </MudButton>
-    </DialogActions>
+            else
+            {
+                <!-- Preview Section -->
+                <MudAlert Severity="Severity.Info">
+                    Review items to copy and resolve conflicts
+                </MudAlert>
+
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.subtitle2">Summary</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@previewItems.Count items</MudChip>
+                    </MudStack>
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.body2">
+                        <strong>@conflictItems.Count</strong> conflicts detected
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        <strong>@(previewItems.Count - conflictItems.Count)</strong> new assignments
+                    </MudText>
+                </MudPaper>
+
+                @if (conflictItems.Any())
+                {
+                    <MudPaper Class="pa-3" Elevation="1" Style="max-height: 300px; overflow-y: auto;">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Warning">Conflicts</MudText>
+                        @foreach (var item in conflictItems)
+                        {
+                            <MudPaper Class="pa-2 my-2" Elevation="0" Style="background-color: #fff3cd; border-left: 4px solid #ffc107;">
+                                <MudText Typo="Typo.body2">
+                                    <strong>@item.FacultyName</strong> → @item.CourseName (@item.Hours hrs)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    Already assigned in target term
+                                </MudText>
+                            </MudPaper>
+                        }
+                    </MudPaper>
+
+                    <MudRadioGroup T="ConflictResolution" @bind-Value="conflictResolution">
+                        <MudRadio Value="ConflictResolution.Skip" Color="Color.Primary">
+                            Skip conflicting items
+                        </MudRadio>
+                        <MudRadio Value="ConflictResolution.Overwrite" Color="Color.Warning">
+                            Overwrite existing assignments (⚠️ This will replace existing data)
+                        </MudRadio>
+                    </MudRadioGroup>
+                }
+            }
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CloseCopyDialog" Color="Color.Default" Disabled="@isCopying">
+                Cancel
+            </MudButton>
+            @if (!showPreview)
+            {
+                <MudButton OnClick="PreviewCopy" 
+                           Color="Color.Info" 
+                           Variant="Variant.Filled" 
+                           StartIcon="@Icons.Material.Filled.Preview"
+                           Disabled="@(!CanPreview() || isCopying)">
+                    Preview
+                </MudButton>
+            }
+            else
+            {
+                <MudButton OnClick="BackToSelection" 
+                           Color="Color.Default" 
+                           Variant="Variant.Outlined"
+                           Disabled="@isCopying">
+                    Back
+                </MudButton>
+                <MudButton OnClick="ExecuteCopy" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Filled" 
+                           StartIcon="@Icons.Material.Filled.ContentCopy"
+                           Disabled="@isCopying">
+                    @if (isCopying)
+                    {
+                        <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                        <span>Copying...</span>
+                    }
+                    else
+                    {
+                        <span>Copy @(previewItems.Count - (conflictResolution == ConflictResolution.Skip ? conflictItems.Count : 0)) Items</span>
+                    }
+                </MudButton>
+            }
+        </DialogActions>
 </MudDialog>
 
 <style>
@@ -186,17 +316,40 @@
 @code {
     private List<FacultyWorkLoad> workloads = new();
     private List<Term> availableTerms = new();
+    private List<Faculty> instructors = new();
+    private List<ProgramOfStudy> programs = new();
+    private List<Department> departments = new();
+    
+    // Copy dialog state
     private bool copyDialogOpen = false;
+    private bool showPreview = false;
+    private bool isCopying = false;
     private int? selectedSourceTermId;
     private int? selectedTargetTermId;
-    private int copyPreviewCount = 0;
+    private CopyScope copyScope = CopyScope.All;
+    private Faculty? selectedInstructor;
+    private int? selectedProgramId;
+    private int? selectedDepartmentId;
+    private ConflictResolution conflictResolution = ConflictResolution.Skip;
     
-    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    // Preview data
+    private List<CopyPreviewItem> previewItems = new();
+    private List<CopyPreviewItem> conflictItems = new();
+    
+    private DialogOptions dialogOptions = new() 
+    { 
+        MaxWidth = MaxWidth.Medium, 
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
         availableTerms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+        instructors = await _context.Faculty.OrderBy(f => f.LastName).ToListAsync();
+        programs = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+        departments = await _context.Departments.OrderBy(d => d.Name).ToListAsync();
     }
 
     private async Task LoadData()
@@ -216,34 +369,138 @@
     private void OpenCopyDialog()
     {
         copyDialogOpen = true;
-        copyPreviewCount = 0;
+        showPreview = false;
+        previewItems.Clear();
+        conflictItems.Clear();
+        selectedSourceTermId = null;
+        selectedTargetTermId = null;
+        copyScope = CopyScope.All;
+        conflictResolution = ConflictResolution.Skip;
     }
 
     private void CloseCopyDialog()
     {
         copyDialogOpen = false;
-        selectedSourceTermId = null;
-        selectedTargetTermId = null;
-        copyPreviewCount = 0;
+        showPreview = false;
+        previewItems.Clear();
+        conflictItems.Clear();
+    }
+
+    private bool CanPreview()
+    {
+        if (!selectedSourceTermId.HasValue || !selectedTargetTermId.HasValue)
+            return false;
+        if (selectedSourceTermId == selectedTargetTermId)
+            return false;
+        if (copyScope == CopyScope.Instructor && selectedInstructor == null)
+            return false;
+        if (copyScope == CopyScope.Program && !selectedProgramId.HasValue)
+            return false;
+        if (copyScope == CopyScope.Department && !selectedDepartmentId.HasValue)
+            return false;
+        return true;
+    }
+
+    private async Task<IEnumerable<Faculty>> SearchInstructors(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return instructors.Take(10);
+        
+        return instructors
+            .Where(f => f.FirstName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                       f.LastName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                       f.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Take(10);
     }
 
     private async Task PreviewCopy()
     {
-        if (!selectedSourceTermId.HasValue)
+        if (!CanPreview())
         {
-            Snackbar.Add("Please select a source term", Severity.Warning);
+            Snackbar.Add("Please complete all required selections", Severity.Warning);
             return;
         }
 
-        var sourceWorkloads = await _context.FacultyWorkLoads
-            .Where(w => w.TermId == selectedSourceTermId.Value)
-            .ToListAsync();
-        
-        copyPreviewCount = sourceWorkloads.Count;
-        StateHasChanged();
+        try
+        {
+            // Build query based on scope
+            var query = _context.FacultyWorkLoads
+                .Include(w => w.Faculty)
+                .Include(w => w.Course)
+                .ThenInclude(c => c!.ProgramOfStudy)
+                .Where(w => w.TermId == selectedSourceTermId!.Value);
+
+            switch (copyScope)
+            {
+                case CopyScope.Instructor:
+                    if (selectedInstructor != null)
+                        query = query.Where(w => w.FacultyEmail == selectedInstructor.Email);
+                    break;
+                case CopyScope.Program:
+                    if (selectedProgramId.HasValue)
+                        query = query.Where(w => w.Course != null && w.Course.ProgramOfStudyId == selectedProgramId.Value);
+                    break;
+                case CopyScope.Department:
+                    if (selectedDepartmentId.HasValue)
+                        query = query.Where(w => w.Faculty != null && w.Faculty.DepartmentId == selectedDepartmentId.Value);
+                    break;
+            }
+
+            var sourceWorkloads = await query.ToListAsync();
+
+            if (!sourceWorkloads.Any())
+            {
+                Snackbar.Add("No workloads found matching the selected criteria", Severity.Warning);
+                return;
+            }
+
+            // Build preview items
+            previewItems.Clear();
+            conflictItems.Clear();
+
+            foreach (var workload in sourceWorkloads)
+            {
+                var previewItem = new CopyPreviewItem
+                {
+                    FacultyEmail = workload.FacultyEmail,
+                    FacultyName = workload.Faculty != null ? $"{workload.Faculty.FirstName} {workload.Faculty.LastName}" : workload.FacultyEmail,
+                    CourseId = workload.CourseId,
+                    CourseName = workload.Course?.Name ?? "N/A",
+                    Hours = workload.HoursAssigned,
+                    WorkloadType = workload.Workload
+                };
+
+                previewItems.Add(previewItem);
+
+                // Check for conflicts
+                var hasConflict = await _context.FacultyWorkLoads
+                    .AnyAsync(w => w.FacultyEmail == workload.FacultyEmail &&
+                                   w.CourseId == workload.CourseId &&
+                                   w.TermId == selectedTargetTermId!.Value);
+
+                if (hasConflict)
+                {
+                    conflictItems.Add(previewItem);
+                }
+            }
+
+            showPreview = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error generating preview: {ex.Message}", Severity.Error);
+        }
     }
 
-    private async Task CopyPreviousYear()
+    private void BackToSelection()
+    {
+        showPreview = false;
+        previewItems.Clear();
+        conflictItems.Clear();
+    }
+
+    private async Task ExecuteCopy()
     {
         if (!selectedSourceTermId.HasValue || !selectedTargetTermId.HasValue)
         {
@@ -251,29 +508,70 @@
             return;
         }
 
-        if (selectedSourceTermId == selectedTargetTermId)
-        {
-            Snackbar.Add("Source and target terms must be different", Severity.Warning);
-            return;
-        }
+        isCopying = true;
+        StateHasChanged();
 
         try
         {
-            var sourceWorkloads = await _context.FacultyWorkLoads
-                .Where(w => w.TermId == selectedSourceTermId.Value)
-                .ToListAsync();
+            var startTime = DateTime.Now;
+            
+            // Build query based on scope
+            var query = _context.FacultyWorkLoads
+                .Include(w => w.Faculty)
+                .Include(w => w.Course)
+                .Where(w => w.TermId == selectedSourceTermId.Value);
+
+            switch (copyScope)
+            {
+                case CopyScope.Instructor:
+                    if (selectedInstructor != null)
+                        query = query.Where(w => w.FacultyEmail == selectedInstructor.Email);
+                    break;
+                case CopyScope.Program:
+                    if (selectedProgramId.HasValue)
+                        query = query.Where(w => w.Course != null && w.Course.ProgramOfStudyId == selectedProgramId.Value);
+                    break;
+                case CopyScope.Department:
+                    if (selectedDepartmentId.HasValue)
+                        query = query.Where(w => w.Faculty != null && w.Faculty.DepartmentId == selectedDepartmentId.Value);
+                    break;
+            }
+
+            var sourceWorkloads = await query.ToListAsync();
 
             if (!sourceWorkloads.Any())
             {
-                Snackbar.Add("No workloads found in the source term", Severity.Warning);
+                Snackbar.Add("No workloads found to copy", Severity.Warning);
                 return;
             }
 
             int copiedCount = 0;
+            int skippedCount = 0;
+            int overwrittenCount = 0;
             var sourceTerm = await _context.Terms.FindAsync(selectedSourceTermId.Value);
             
             foreach (var workload in sourceWorkloads)
             {
+                // Check for conflicts
+                var existingWorkload = await _context.FacultyWorkLoads
+                    .FirstOrDefaultAsync(w => w.FacultyEmail == workload.FacultyEmail &&
+                                             w.CourseId == workload.CourseId &&
+                                             w.TermId == selectedTargetTermId.Value);
+
+                if (existingWorkload != null)
+                {
+                    if (conflictResolution == ConflictResolution.Skip)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+                    else // Overwrite
+                    {
+                        _context.FacultyWorkLoads.Remove(existingWorkload);
+                        overwrittenCount++;
+                    }
+                }
+
                 var newWorkload = new FacultyWorkLoad
                 {
                     FacultyEmail = workload.FacultyEmail,
@@ -286,7 +584,9 @@
                     DateAssigned = DateTime.Now,
                     Status = WorkloadStatus.Draft,
                     ClonedFromId = workload.Id,
-                    SourceYear = sourceTerm?.Year
+                    SourceYear = sourceTerm?.Year,
+                    CreatedDate = DateTime.Now,
+                    CreatedBy = "System" // Replace with actual user
                 };
 
                 _context.FacultyWorkLoads.Add(newWorkload);
@@ -295,7 +595,15 @@
 
             await _context.SaveChangesAsync();
             
-            Snackbar.Add($"Successfully copied {copiedCount} workload assignment(s) to the new term!", Severity.Success);
+            var elapsed = (DateTime.Now - startTime).TotalSeconds;
+            var summary = $"✓ {copiedCount} copied";
+            if (skippedCount > 0)
+                summary += $" • {skippedCount} skipped";
+            if (overwrittenCount > 0)
+                summary += $" • {overwrittenCount} overwritten";
+            summary += $" ({elapsed:F1}s)";
+            
+            Snackbar.Add(summary, Severity.Success);
             CloseCopyDialog();
             await LoadData();
         }
@@ -303,5 +611,35 @@
         {
             Snackbar.Add($"Error copying workloads: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            isCopying = false;
+            StateHasChanged();
+        }
+    }
+
+    // Enums and DTOs
+    private enum CopyScope
+    {
+        All,
+        Instructor,
+        Program,
+        Department
+    }
+
+    private enum ConflictResolution
+    {
+        Skip,
+        Overwrite
+    }
+
+    private class CopyPreviewItem
+    {
+        public string FacultyEmail { get; set; } = string.Empty;
+        public string FacultyName { get; set; } = string.Empty;
+        public int? CourseId { get; set; }
+        public string CourseName { get; set; } = string.Empty;
+        public decimal Hours { get; set; }
+        public Workload WorkloadType { get; set; }
     }
 }
