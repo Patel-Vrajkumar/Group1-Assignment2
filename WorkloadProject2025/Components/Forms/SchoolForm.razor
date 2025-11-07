@@ -26,7 +26,7 @@
 @code {
 
     [Parameter]
-    public EventCallback<School> OnSaved { get; set; }
+    public EventCallback OnSaved { get; set; }
 
     private School school { get; set; } = new School();
 
@@ -35,7 +35,7 @@
         school = new School(); // reset form
     }
 
-    private async void Save()
+    private async Task Save()
     {
         await schoolService.AddAsync(school);
         //Now invoke the callback
