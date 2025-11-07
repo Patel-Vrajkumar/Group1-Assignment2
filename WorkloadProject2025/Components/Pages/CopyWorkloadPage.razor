@@ -18,14 +18,14 @@
  <MudSelect T="int?" Label="Source Term" @bind-Value="sourceTermId" Required="true">
  @foreach (var t in terms)
  {
- <MudSelectItem Value="@t.Id">@TermLabel(t)</MudSelectItem>
+ <MudSelectItem Value="@((int?)t.Id)">@TermLabel(t)</MudSelectItem>
  }
  </MudSelect>
 
  <MudSelect T="int?" Label="Target Term" @bind-Value="targetTermId" Required="true">
  @foreach (var t in terms)
  {
- <MudSelectItem Value="@t.Id">@TermLabel(t)</MudSelectItem>
+ <MudSelectItem Value="@((int?)t.Id)">@TermLabel(t)</MudSelectItem>
  }
  </MudSelect>
 

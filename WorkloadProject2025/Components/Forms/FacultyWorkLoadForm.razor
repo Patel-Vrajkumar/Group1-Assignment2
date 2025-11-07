@@ -3,7 +3,7 @@
 @using WorkloadProject2025.Data.Models
 @using MudBlazor
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext _context
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <MudCard Class="mx-auto mt-6" Style="max-width:900px;" Elevation="4">
@@ -24,9 +24,10 @@
  <MudItem xs="12" sm="6">
  <MudSelect Label="Faculty"
  T="string"
- @bind-Value="facultyWorkLoad.FacultyEmail"
+ @bind-Value="selectedFacultyEmail"
  Variant="Variant.Outlined"
  Required="true"
+ Clearable="false"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.Person"
  AdornmentColor="Color.Primary">
@@ -39,16 +40,17 @@
 
  <MudItem xs="12" sm="6">
  <MudSelect Label="Term"
- T="int"
- @bind-Value="facultyWorkLoad.TermId"
+ T="int?"
+ @bind-Value="selectedTermId"
  Variant="Variant.Outlined"
  Required="true"
+ Clearable="false"
  Adornment="Adornment.Start"
  AdornmentIcon="@Icons.Material.Filled.DateRange"
  AdornmentColor="Color.Primary">
  @foreach (var t in termOptions)
  {
- <MudSelectItem Value="@t.Id">@t.IntakeName</MudSelectItem>
+ <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -64,7 +66,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var p in programOptions)
  {
- <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+ <MudSelectItem Value="@((int?)p.Id)">@p.Name</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -80,7 +82,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var c in courseOptions)
  {
- <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+ <MudSelectItem Value="@((int?)c.Id)">@c.Name</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -125,7 +127,7 @@
  AdornmentColor="Color.Primary">
  @foreach (var cat in categoryOptions)
  {
- <MudSelectItem Value="@cat.Id">@cat.Name (@cat.MiniumHours-@cat.MaximumHours)</MudSelectItem>
+ <MudSelectItem Value="@((int?)cat.Id)">@cat.Name (@cat.MiniumHours-@cat.MaximumHours)</MudSelectItem>
  }
  </MudSelect>
  </MudItem>
@@ -239,6 +241,9 @@
  DateAssigned = DateTime.Now
  };
 
+ private string? selectedFacultyEmail;
+ private int? selectedTermId;
+
  private List<Faculty> facultyOptions = new();
  private List<Term> termOptions = new();
  private List<Course> courseOptions = new();
@@ -247,16 +252,19 @@
 
  protected override async Task OnInitializedAsync()
  {
- facultyOptions = await _context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
- termOptions = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
- programOptions = await _context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
- courseOptions = await _context.Courses.OrderBy(c => c.Name).ToListAsync();
- categoryOptions = await _context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
+ using var context = await DbFactory.CreateDbContextAsync();
+ facultyOptions = await context.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
+ termOptions = await context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+ programOptions = await context.ProgramsOfStudy.OrderBy(p => p.Name).ToListAsync();
+ courseOptions = await context.Courses.OrderBy(c => c.Name).ToListAsync();
+ categoryOptions = await context.WorkloadCategories.OrderBy(c => c.Name).ToListAsync();
  }
 
  private void Cancel()
  {
  facultyWorkLoad = new FacultyWorkLoad { DateAssigned = DateTime.Now };
+ selectedFacultyEmail = null;
+ selectedTermId = null;
  }
 
  private bool IsValidEmail(string email)
@@ -277,10 +285,11 @@
 
  private bool IsFormValid()
  {
- var valid = !string.IsNullOrWhiteSpace(facultyWorkLoad.FacultyEmail) &&
- IsValidEmail(facultyWorkLoad.FacultyEmail) &&
- facultyWorkLoad.TermId >0 &&
- facultyWorkLoad.HoursAssigned >0;
+ var valid = !string.IsNullOrWhiteSpace(selectedFacultyEmail) &&
+ IsValidEmail(selectedFacultyEmail) &&
+ selectedTermId.HasValue &&
+ selectedTermId.Value > 0 &&
+ facultyWorkLoad.HoursAssigned > 0;
  if (facultyWorkLoad.IsCoverage && !string.IsNullOrWhiteSpace(facultyWorkLoad.CoveredForFacultyEmail))
  {
  valid = valid && IsValidEmail(facultyWorkLoad.CoveredForFacultyEmail);
@@ -298,12 +307,18 @@
 
  try
  {
+ // Assign selected values to the model
+ facultyWorkLoad.FacultyEmail = selectedFacultyEmail!;
+ facultyWorkLoad.TermId = selectedTermId!.Value;
+
  if (facultyWorkLoad.HRProcessed && facultyWorkLoad.HRProcessedDate == null)
  {
  facultyWorkLoad.HRProcessedDate = DateTime.Now;
  }
- _context.FacultyWorkLoads.Add(facultyWorkLoad);
- await _context.SaveChangesAsync();
+ 
+ using var context = await DbFactory.CreateDbContextAsync();
+ context.FacultyWorkLoads.Add(facultyWorkLoad);
+ await context.SaveChangesAsync();
 
  Snackbar.Add($"Workload assignment of {facultyWorkLoad.HoursAssigned} hours added successfully!", Severity.Success);
  await OnSaved.InvokeAsync();
