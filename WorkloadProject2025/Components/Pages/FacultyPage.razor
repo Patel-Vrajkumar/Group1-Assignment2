@@ -1,0 +1,95 @@
+@page "/facultypage"
+@using WorkloadProject2025.Data
+@using WorkloadProject2025.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<PageTitle>Faculty</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+ <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">
+ <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+ Faculty
+ </MudText>
+
+ <MudGrid Class="mb-4">
+ <MudItem xs="12" md="6">
+ <FacultyForm OnSaved="LoadData" />
+ </MudItem>
+ <MudItem xs="12" md="6">
+ <MudCard>
+ <MudCardHeader>
+ <CardHeaderContent>
+ <MudText Typo="Typo.h6">Faculty List</MudText>
+ </CardHeaderContent>
+ </MudCardHeader>
+ <MudCardContent>
+ @if (isLoading)
+ {
+ <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+ }
+ else if (!faculty.Any())
+ {
+ <MudAlert Severity="Severity.Info">No faculty found.</MudAlert>
+ }
+ else
+ {
+ <MudTable Items="faculty" Dense="true" Hover="true">
+ <HeaderContent>
+ <MudTh>Name</MudTh>
+ <MudTh>Email</MudTh>
+ <MudTh>Phone</MudTh>
+ <MudTh>Employment</MudTh>
+ <MudTh>Active</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd>@($"{context.FirstName} {context.LastName}")</MudTd>
+ <MudTd>@context.Email</MudTd>
+ <MudTd>@context.PhoneNumber</MudTd>
+ <MudTd>@context.EmploymentCategory.ToString()</MudTd>
+ <MudTd>
+ <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Variant="Variant.Outlined">
+ @(context.IsActive ? "Yes" : "No")
+ </MudChip>
+ </MudTd>
+ </RowTemplate>
+ </MudTable>
+ }
+ </MudCardContent>
+ </MudCard>
+ </MudItem>
+ </MudGrid>
+</MudContainer>
+
+@code {
+ private List<Faculty> faculty = new();
+ private bool isLoading;
+
+ protected override async Task OnInitializedAsync()
+ {
+ await LoadData();
+ }
+
+ private async Task LoadData()
+ {
+ isLoading = true;
+ try
+ {
+ using var context = await DbFactory.CreateDbContextAsync();
+ faculty = await context.Faculty
+ .OrderBy(f => f.LastName)
+ .ThenBy(f => f.FirstName)
+ .ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ Snackbar.Add($"Failed to load faculty: {ex.Message}", Severity.Error);
+ }
+ finally
+ {
+ isLoading = false;
+ StateHasChanged();
+ }
+ }
+}

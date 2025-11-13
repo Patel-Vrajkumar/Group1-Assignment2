@@ -9,11 +9,14 @@ using WorkloadProject2025.Components.Account;
 using WorkloadProject2025.Data;
 using WorkloadProject2025.Data.Models;
 using WorkloadProject2025.Services;
+using ApexCharts; // added for chart services
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+// Add ApexCharts services (needed for charts to render)
+builder.Services.AddApexCharts();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

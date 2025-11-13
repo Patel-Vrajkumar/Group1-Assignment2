@@ -4,7 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using ApexCharts
 @using MudBlazor
-@inject ApplicationDbContext _context
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject IWorkloadCalculationService Calc
 
 <PageTitle>School Dashboard</PageTitle>
@@ -29,7 +29,7 @@
                         <MudSelectItem Value="@((int?)null)">All Terms</MudSelectItem>
                         @foreach (var t in terms)
                         {
-                            <MudSelectItem Value="@t.Id">@t.IntakeName (@t.StartDate?.ToString("MMM yyyy") - @t.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
+                            <MudSelectItem Value="@((int?)t.Id)">@t.IntakeName (@t.StartDate?.ToString("MMM yyyy") - @t.EndDate?.ToString("MMM yyyy"))</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -260,18 +260,25 @@
 
     private async Task LoadData()
     {
+        using var context = await DbFactory.CreateDbContextAsync();
+
         // Load schools and related data
-        schools = await _context.Schools
+        schools = await context.Schools
             .Include(s => s.Departments)
             .ThenInclude(d => d.ProgramsOfStudy)
             .ThenInclude(p => p.Courses)
+            .AsNoTracking()
             .ToListAsync();
 
-        terms = await _context.Terms.OrderByDescending(t => t.StartDate).ToListAsync();
+        terms = await context.Terms
+            .OrderByDescending(t => t.StartDate)
+            .AsNoTracking()
+            .ToListAsync();
 
-        allWorkloads = await _context.FacultyWorkLoads
+        allWorkloads = await context.FacultyWorkLoads
             .Include(w => w.Course)!.ThenInclude(c => c!.ProgramOfStudy)!.ThenInclude(p => p!.Department)!.ThenInclude(d => d!.School)
             .Include(w => w.WorkloadCategory)
+            .AsNoTracking()
             .ToListAsync();
 
         await CalculateStatistics();
