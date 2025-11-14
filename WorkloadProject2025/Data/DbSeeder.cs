@@ -270,12 +270,15 @@ namespace WorkloadProject2025.Data
             // Seed Workload Categories
             if (!context.WorkloadCategories.Any())
             {
-                var now = DateTime.UtcNow.Date;
+                // WORKLOAD SCHEDULE - JULY 1, 2020 - JUNE 30, 2024
+                var scheduleStart = new DateTime(2020, 7, 1);
+                var scheduleEnd = new DateTime(2024, 6, 30);
                 var cats = new List<WorkloadCategory>
                 {
-                    new WorkloadCategory { Name = "Full Time Standard", MiniumHours =25, MaximumHours =40, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.FullTime },
-                    new WorkloadCategory { Name = "Part Time", MiniumHours =3, MaximumHours =15, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.PartTime },
-                    new WorkloadCategory { Name = "Adjunct", MiniumHours =0, MaximumHours =12, StartDate = now, AppliesToEmploymentCategory = EmploymentCategory.Adjunct }
+                    new WorkloadCategory { Name = "CATEGORY 1: Courses within 4-year, government approved collaborative degree programs or courses applicable for university transfer within the Canadian university system (excluding those listed in category 3 and 4).", MiniumHours = 420, MaximumHours = 462, StartDate = scheduleStart, EndDate = scheduleEnd },
+                    new WorkloadCategory { Name = "CATEGORY 2: Courses within 2-year government approved diploma programs and 1-year government approved certificate programs (excluding those listed in category 3 and 4)", MiniumHours = 462, MaximumHours = 504, StartDate = scheduleStart, EndDate = scheduleEnd },
+                    new WorkloadCategory { Name = "CATEGORY 3: Courses within government approved art and design credentials.", MiniumHours = 504, MaximumHours = 550, StartDate = scheduleStart, EndDate = scheduleEnd },
+                    new WorkloadCategory { Name = "CATEGORY 4: Courses within health care aide, power engineering, and skilled trades apprenticeship programs; and clinical courses in nursing and practical nurse.", MiniumHours = 640, MaximumHours = 720, StartDate = scheduleStart, EndDate = scheduleEnd }
                 };
                 context.WorkloadCategories.AddRange(cats);
                 context.SaveChanges();
